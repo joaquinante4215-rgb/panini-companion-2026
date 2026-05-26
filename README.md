@@ -44,3 +44,11 @@ http://localhost:5173
 - Sugerencia simple para códigos de 2 letras.
 - Botones rápidos de países frecuentes.
 - Botones y campo más cómodos para iPad/celular.
+
+
+## Cambios v4 - Respaldo
+
+- Botón Exportar: descarga un archivo `.json` con todo el avance.
+- Botón Importar: restaura un respaldo `.json`.
+- Mantiene captura express, deshacer y guardado automático local.
+- Recomendación: exportar respaldo después de cada sesión importante de captura.

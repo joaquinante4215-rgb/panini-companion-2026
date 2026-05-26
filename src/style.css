@@ -18,3 +18,22 @@
   .quickTeams button{flex:1;min-width:88px}
   .manual button{min-height:54px}
 }
+
+
+.tabs .backupBtn{
+  background:rgba(59,130,246,.22);
+  border:1px solid rgba(147,197,253,.35);
+  color:#dbeafe;
+  border-radius:18px;
+  padding:14px;
+  font-weight:800;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.tabs .importBtn input{display:none}
+@media(max-width:800px){
+  .tabs .backupBtn{min-height:54px}
+}

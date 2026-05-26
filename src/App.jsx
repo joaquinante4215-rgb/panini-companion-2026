@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle } from "lucide-react";
+import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload } from "lucide-react";
 import { motion } from "framer-motion";
 
 const groups = [
@@ -161,6 +161,72 @@ export default function App() {
     setUndoStack(prev => prev.slice(1));
   }
 
+  function exportBackup() {
+    const backup = {
+      version: 4,
+      createdAt: new Date().toISOString(),
+      collection,
+      specials,
+      packs,
+      log,
+      undoStack
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: "application/json"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const today = new Date().toISOString().slice(0, 10);
+
+    link.href = url;
+    link.download = `panini-backup-${today}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+    showFeedback("new", "Respaldo exportado", "Archivo descargado correctamente");
+    addLog("Respaldo exportado");
+  }
+
+  function importBackup(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+
+        if (!data.collection || typeof data.collection !== "object") {
+          throw new Error("Archivo inválido");
+        }
+
+        saveUndoSnapshot("importar respaldo");
+
+        setCollection(data.collection || initialCollection());
+        setSpecials(data.specials || initialSpecials());
+        setPacks(Number(data.packs || 0));
+        setLog(Array.isArray(data.log) ? data.log : []);
+        setUndoStack(Array.isArray(data.undoStack) ? data.undoStack : []);
+
+        showFeedback("new", "Respaldo importado", "El álbum fue restaurado correctamente");
+        addLog("Respaldo importado");
+      } catch (err) {
+        showFeedback("error", "Error al importar", "El archivo no es válido");
+        addLog("Error al importar respaldo");
+      } finally {
+        event.target.value = "";
+      }
+    };
+
+    reader.readAsText(file);
+  }
+
   function markOwned(code, n) {
     saveUndoSnapshot(`${code}${n}: marcar como conseguida`);
     const wasMissing = collection?.[code]?.find(s => s.number === n && !s.owned);
@@ -251,6 +317,8 @@ export default function App() {
         <button onClick={() => setTab("duplicates")} className={tab === "duplicates" ? "active" : ""}><Repeat2 size={17}/> Repetidas</button>
         <button onClick={() => setTab("specials")} className={tab === "specials" ? "active" : ""}><Star size={17}/> Especiales</button>
         <button onClick={undoLastAction} className="undo">Deshacer</button>
+        <button onClick={exportBackup} className="backupBtn"><Download size={17}/> Exportar</button>
+        <label className="backupBtn importBtn"><Upload size={17}/> Importar<input type="file" accept="application/json" onChange={importBackup} hidden /></label>
       </nav>
 
       {tab === "capture" && (
