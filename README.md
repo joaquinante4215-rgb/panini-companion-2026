@@ -52,3 +52,21 @@ http://localhost:5173
 - Botón Importar: restaura un respaldo `.json`.
 - Mantiene captura express, deshacer y guardado automático local.
 - Recomendación: exportar respaldo después de cada sesión importante de captura.
+
+
+## Cambios v5 - Firebase Edition
+
+Esta versión agrega sincronización con Firestore.
+
+### Firestore
+Usa el documento:
+
+```text
+albums/principal
+```
+
+### Notas
+- Sigue guardando respaldo local en `localStorage`.
+- Guarda automáticamente en Firebase.
+- El botón "Guardar nube" fuerza sincronización manual.
+- Esta versión usa un álbum único compartido. Después se puede agregar login y múltiples álbumes.

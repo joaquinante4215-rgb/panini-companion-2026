@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload } from "lucide-react";
 import { motion } from "framer-motion";
+import { loadCloudAlbum, saveCloudAlbum } from "./firebase";
 
 const groups = [
   { name: "Grupo A", teams: ["MEX", "RSA", "KOR", "CZE"] },
@@ -94,12 +95,66 @@ export default function App() {
   const [packs, setPacks] = useState(() => Number(localStorage.getItem("panini2026_packs") || 0));
   const [log, setLog] = useState(() => safeLoad("panini2026_log", []));
   const [undoStack, setUndoStack] = useState(() => safeLoad("panini2026_undo", []));
+  const [cloudStatus, setCloudStatus] = useState("local");
+  const [cloudReady, setCloudReady] = useState(false);
 
   useEffect(() => localStorage.setItem("panini2026_collection", JSON.stringify(collection)), [collection]);
   useEffect(() => localStorage.setItem("panini2026_specials", JSON.stringify(specials)), [specials]);
   useEffect(() => localStorage.setItem("panini2026_log", JSON.stringify(log)), [log]);
   useEffect(() => localStorage.setItem("panini2026_packs", String(packs)), [packs]);
   useEffect(() => localStorage.setItem("panini2026_undo", JSON.stringify(undoStack)), [undoStack]);
+
+  useEffect(() => {
+    async function startCloudSync() {
+      try {
+        setCloudStatus("cargando nube");
+        const cloudData = await loadCloudAlbum();
+
+        if (cloudData && cloudData.collection) {
+          setCollection(cloudData.collection);
+          setSpecials(cloudData.specials || initialSpecials());
+          setPacks(Number(cloudData.packs || 0));
+          setLog(Array.isArray(cloudData.log) ? cloudData.log : []);
+          setUndoStack(Array.isArray(cloudData.undoStack) ? cloudData.undoStack : []);
+          setCloudStatus("sincronizado");
+        } else {
+          setCloudStatus("nube inicializada");
+        }
+
+        setCloudReady(true);
+      } catch (error) {
+        console.error("Firebase load error", error);
+        setCloudStatus("modo local");
+        setCloudReady(false);
+      }
+    }
+
+    startCloudSync();
+  }, []);
+
+
+  useEffect(() => {
+    if (!cloudReady) return;
+
+    const timeout = window.setTimeout(async () => {
+      try {
+        setCloudStatus("guardando");
+        await saveCloudAlbum({
+          collection,
+          specials,
+          packs,
+          log,
+          undoStack
+        });
+        setCloudStatus("sincronizado");
+      } catch (error) {
+        console.error("Firebase save error", error);
+        setCloudStatus("error nube");
+      }
+    }, 700);
+
+    return () => window.clearTimeout(timeout);
+  }, [collection, specials, packs, log, undoStack, cloudReady]);
 
   const totals = useMemo(() => {
     const normal = Object.values(collection).flat();
@@ -308,7 +363,7 @@ export default function App() {
         </div>
       </motion.header>
 
-      <div className="saveBox">Guardado automático activo en este dispositivo.</div>
+      <div className={`saveBox cloud ${cloudStatus.replace(" ", "-")}`}>Guardado automático: {cloudStatus}. También hay respaldo local en este dispositivo.</div>
 
       <nav className="tabs">
         <button onClick={() => setTab("capture")} className={tab === "capture" ? "active" : ""}><PackageOpen size={17}/> Abrí sobre</button>
@@ -319,6 +374,17 @@ export default function App() {
         <button onClick={undoLastAction} className="undo">Deshacer</button>
         <button onClick={exportBackup} className="backupBtn"><Download size={17}/> Exportar</button>
         <label className="backupBtn importBtn"><Upload size={17}/> Importar<input type="file" accept="application/json" onChange={importBackup} hidden /></label>
+        <button onClick={async () => {
+          try {
+            setCloudStatus("guardando");
+            await saveCloudAlbum({ collection, specials, packs, log, undoStack });
+            setCloudStatus("sincronizado");
+            showFeedback("new", "Nube actualizada", "Avance guardado en Firebase");
+          } catch (error) {
+            setCloudStatus("error nube");
+            showFeedback("error", "Error en nube", "No se pudo guardar en Firebase");
+          }
+        }} className="backupBtn cloudBtn">Guardar nube</button>
       </nav>
 
       {tab === "capture" && (
