@@ -70,3 +70,19 @@ albums/principal
 - Guarda automáticamente en Firebase.
 - El botón "Guardar nube" fuerza sincronización manual.
 - Esta versión usa un álbum único compartido. Después se puede agregar login y múltiples álbumes.
+
+
+## Cambios v6 - Especiales reales
+
+Las 34 estampas especiales ahora se controlan individualmente:
+
+- Panini 00: 1 estampa (`PAN00`)
+- FWC / FIFA World Cup: 19 estampas (`FWC1` a `FWC19`)
+- Coca Cola: 14 estampas (`CC1` a `CC14`)
+
+Las especiales:
+- suman al total de 994 estampas,
+- tienen % de avance,
+- tienen repetidas,
+- pueden marcarse como cambiadas,
+- se pueden capturar desde captura express.

@@ -66,9 +66,26 @@ function initialCollection() {
 }
 
 function initialSpecials() {
-  return Array.from({ length: 34 }, (_, i) => ({
-    id: `ESP${i + 1}`,
-    name: `Especial ${i + 1}`,
+  const panini = [{ id: "PANINI00", group: "Panini", code: "PAN", number: "00", label: "Panini 00" }];
+
+  const fwc = Array.from({ length: 19 }, (_, i) => ({
+    id: `FWC${i + 1}`,
+    group: "FWC",
+    code: "FWC",
+    number: i + 1,
+    label: `FWC ${i + 1}`
+  }));
+
+  const cocaCola = Array.from({ length: 14 }, (_, i) => ({
+    id: `CC${i + 1}`,
+    group: "Coca Cola",
+    code: "CC",
+    number: i + 1,
+    label: `Coca Cola ${i + 1}`
+  }));
+
+  return [...panini, ...fwc, ...cocaCola].map(item => ({
+    ...item,
     owned: false,
     duplicates: 0,
     traded: 0
@@ -301,9 +318,35 @@ export default function App() {
     addLog(`${code}${n}: marcada como cambiada`);
   }
 
+  function processSpecialQuickCode(specialId) {
+    const special = specials.find(item => item.id === specialId);
+
+    if (!special) {
+      addLog(`No encontré la especial ${specialId}`);
+      showFeedback("error", "Especial no encontrada", "Revisa la clave capturada");
+      return;
+    }
+
+    saveUndoSnapshot(`${special.label}: capturar especial`);
+
+    setSpecials(prev => prev.map(item => {
+      if (item.id !== specialId) return item;
+      if (item.owned) return { ...item, duplicates: item.duplicates + 1 };
+      return { ...item, owned: true };
+    }));
+
+    if (special.owned) {
+      addLog(`${special.label}: repetida agregada`);
+      showFeedback("duplicate", `${special.label} repetida`, "Se agregó a repetidas especiales");
+    } else {
+      addLog(`${special.label}: nueva conseguida`);
+      showFeedback("new", `${special.label} nueva`, "Se marcó como conseguida");
+    }
+  }
+
   function processQuickCode() {
     const raw = quickCode.trim().toUpperCase().replace(/\s+/g, "");
-    const match = raw.match(/^([A-Z]{2,3})(\d{1,2})$/);
+    const match = raw.match(/^([A-Z]{2,6})(\d{1,2}|00)$/);
 
     if (!match) {
       addLog(`Código no válido: ${quickCode}`);
@@ -313,7 +356,21 @@ export default function App() {
     }
 
     const typedCode = match[1];
-    const number = Number(match[2]);
+    const numberText = match[2];
+    const number = Number(numberText);
+
+    const specialId =
+      (typedCode === "PAN" || typedCode === "PANINI") && numberText === "00" ? "PANINI00" :
+      typedCode === "FWC" ? `FWC${number}` :
+      typedCode === "CC" ? `CC${number}` :
+      null;
+
+    if (specialId) {
+      processSpecialQuickCode(specialId);
+      setQuickCode("");
+      return;
+    }
+
     const code = typedCode.length === 2 ? suggestTeamCode(typedCode) : typedCode;
 
     if (!collection[code]) {
@@ -390,7 +447,7 @@ export default function App() {
       {tab === "capture" && (
         <section className="card">
           <h2><PackageOpen/> Abrí un sobre</h2>
-          <p>Captura continua: escribe <b>MEX7</b>, presiona Enter y sigue con la siguiente. La app decide si es nueva o repetida.</p>
+          <p>Captura continua: escribe <b>MEX7</b>, <b>PAN00</b>, <b>FWC7</b> o <b>CC3</b>, presiona Enter y sigue con la siguiente.</p>
           <div className={captureFeedback ? `captureFeedback ${captureFeedback.type}` : "captureFeedback idle"}>
             {captureFeedback ? (
               <>
@@ -400,7 +457,7 @@ export default function App() {
             ) : (
               <>
                 <strong>Lista para capturar</strong>
-                <span>Formato: código de país + número. Ej. MEX7</span>
+                <span>Formato: país + número. Ej. MEX7. Especiales: PAN00, FWC7 o CC3</span>
               </>
             )}
           </div>
@@ -411,6 +468,9 @@ export default function App() {
           <div className="quickTeams">
             {["MEX","ARG","BRA","POR","FRA","ESP","USA","GER"].map(code => (
               <button key={code} onClick={() => setQuickCode(code)}>{flags[code]} {code}</button>
+            ))}
+            {["PAN00","FWC","CC"].map(code => (
+              <button key={code} onClick={() => setQuickCode(code)}>{code}</button>
             ))}
           </div>
           <div className="manual">
@@ -517,5 +577,46 @@ function Specials({ specials, setSpecials }) {
       return s;
     }));
   }
-  return <section className="card"><h2><Star/> Especiales</h2><div className="specials">{specials.map(s => <div className={s.owned ? "special owned" : "special"} key={s.id}><b>{s.id}</b><span>{s.name}</span><small>R:{s.duplicates} C:{s.traded}</small><div><button onClick={() => update(s.id, "owned")}>Tengo</button><button onClick={() => update(s.id, "dupe")}>Repetida</button><button onClick={() => update(s.id, "trade")}>Cambiada</button></div></div>)}</div></section>
+
+  const specialGroups = [
+    { name: "Panini", items: specials.filter(s => s.group === "Panini") },
+    { name: "FWC · FIFA World Cup", items: specials.filter(s => s.group === "FWC") },
+    { name: "Coca Cola", items: specials.filter(s => s.group === "Coca Cola") }
+  ];
+
+  const owned = specials.filter(s => s.owned).length;
+  const dupes = specials.reduce((sum, s) => sum + s.duplicates, 0);
+  const available = specials.reduce((sum, s) => sum + Math.max(0, s.duplicates - s.traded), 0);
+
+  return (
+    <section className="card">
+      <h2><Star/> Especiales <small>{owned}/34</small></h2>
+      <div className="specialSummary">
+        <div><span>Avance especiales</span><strong>{Math.round((owned / 34) * 1000) / 10}%</strong></div>
+        <div><span>Conseguidas</span><strong>{owned}/34</strong></div>
+        <div><span>Repetidas</span><strong>{dupes}</strong></div>
+        <div><span>Disponibles cambio</span><strong>{available}</strong></div>
+      </div>
+      <div className="specialProgress"><div style={{ width: `${Math.round((owned / 34) * 100)}%` }} /></div>
+      {specialGroups.map(group => (
+        <div key={group.name} className="specialGroup">
+          <h3>{group.name}</h3>
+          <div className="specials">
+            {group.items.map(s => (
+              <div className={s.owned ? "special owned" : "special"} key={s.id}>
+                <b>{s.label}</b>
+                <span>{s.owned ? "Tengo" : "Falta"}</span>
+                <small>R:{s.duplicates} C:{s.traded}</small>
+                <div>
+                  <button onClick={() => update(s.id, "owned")}>Tengo</button>
+                  <button onClick={() => update(s.id, "dupe")}>Repetida</button>
+                  <button onClick={() => update(s.id, "trade")}>Cambiada</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
 }
