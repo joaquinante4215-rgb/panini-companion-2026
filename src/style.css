@@ -118,3 +118,32 @@
     min-height:32px;
   }
 }
+
+
+.statsPage{display:grid;gap:18px}
+.statsHero{display:flex;justify-content:space-between;align-items:center;gap:18px}
+.bigProgress{min-width:260px}
+.bigProgress strong{display:block;font-size:52px;font-weight:950}
+.bigProgress span{display:block;color:#cbd5e1;margin-bottom:8px}
+.stat span{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.smartGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.smartCard{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:18px}
+.smartCard span{display:block;color:#cbd5e1;font-size:13px}
+.smartCard strong{display:block;font-size:24px;margin-top:8px}
+.recommendation{border-radius:22px;padding:18px;border:1px solid rgba(255,255,255,.12)}
+.recommendation strong{display:block;font-size:28px}
+.recommendation.packs{background:rgba(34,197,94,.16);border-color:rgba(134,239,172,.28)}
+.recommendation.mixed{background:rgba(250,204,21,.16);border-color:rgba(253,224,71,.28)}
+.recommendation.trade{background:rgba(59,130,246,.16);border-color:rgba(147,197,253,.28)}
+.rankings{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.teamRanking{display:grid;gap:12px}
+.rankRow{display:grid;grid-template-columns:90px 1fr 56px;gap:12px;align-items:center}
+.rankRow strong{display:block}
+.rankRow span{display:block;color:#94a3b8;font-size:12px}
+.rankBar{height:12px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
+.rankBar div{height:100%;background:white}
+@media(max-width:800px){
+  .statsHero{display:block}
+  .bigProgress{margin-top:14px}
+  .rankRow{grid-template-columns:75px 1fr 48px}
+}

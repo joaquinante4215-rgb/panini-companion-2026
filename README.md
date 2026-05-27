@@ -105,3 +105,21 @@ Las especiales:
 - Corrección visual del botón de borrar en tarjetas de estampas.
 - Los botones de cada estampa ahora se acomodan en grid de 4 columnas.
 - El botón de borrar ya no se desborda y queda seleccionable.
+
+
+## Cambios v8 - Estadísticas inteligentes + PWA
+
+### Estadísticas inteligentes
+- Numeralia más clara.
+- Recomendación de estrategia: sobres, mixto o intercambio.
+- Probabilidad de próxima nueva.
+- Estampas útiles esperadas por sobre.
+- Tasa de repetición.
+- Costo estimado restante con supuesto de $21 MXN por sobre.
+- Ranking de selecciones más avanzadas y más atrasadas.
+
+### PWA básica
+- Manifest para instalar como app.
+- Icono básico.
+- Service Worker para cache básico.
+- En iPad/celular se puede agregar a pantalla de inicio.

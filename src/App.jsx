@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle } from "lucide-react";
+import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle, TrendingUp, Target, Wallet, CalendarDays, Medal } from "lucide-react";
 import { motion } from "framer-motion";
 import { loadCloudAlbum, saveCloudAlbum } from "./firebase";
 
@@ -195,7 +195,26 @@ export default function App() {
     const nextNewProbability = Math.round((missing / total) * 1000) / 10;
     const estimatedRemainingStickers = missing > 0 ? Math.ceil(total * Math.log(total / Math.max(1, owned))) : 0;
     const estimatedPacks = Math.ceil(estimatedRemainingStickers / 5);
-    return { total, owned, missing, dupes, traded, availableDupes, normalOwned, specialOwned, progress, nextNewProbability, estimatedPacks };
+        const completionByTeam = Object.entries(collection).map(([code, stickers]) => ({
+      code,
+      name: countryNames[code],
+      owned: stickers.filter(s => s.owned).length,
+      missing: stickers.filter(s => !s.owned).length,
+      duplicates: stickers.reduce((sum, s) => sum + s.duplicates, 0)
+    })).sort((a, b) => b.owned - a.owned);
+
+    const completedTeams = completionByTeam.filter(t => t.owned === 20).length;
+    const almostTeams = completionByTeam.filter(t => t.owned >= 17 && t.owned < 20).length;
+    const weakestTeams = [...completionByTeam].sort((a, b) => a.owned - b.owned).slice(0, 5);
+    const strongestTeams = completionByTeam.slice(0, 5);
+    const usefulRate = Math.round((owned / Math.max(1, owned + dupes)) * 1000) / 10;
+    const duplicateRate = Math.round((dupes / Math.max(1, owned + dupes)) * 1000) / 10;
+    const expectedUsefulPerPack = Math.round((nextNewProbability / 100) * 7 * 10) / 10;
+    const recommendedMode = nextNewProbability > 35 ? "Comprar sobres" : nextNewProbability > 18 ? "Comprar + intercambiar" : "Priorizar intercambio";
+    const estimatedCostRemaining = estimatedPacks * 21;
+    const albumIntensity = progress >= 90 ? "Recta final" : progress >= 70 ? "Etapa difícil" : progress >= 40 ? "Buen ritmo" : "Arranque";
+
+    return { total, owned, missing, dupes, traded, availableDupes, normalOwned, specialOwned, progress, nextNewProbability, estimatedPacks, completionByTeam, completedTeams, almostTeams, weakestTeams, strongestTeams, usefulRate, duplicateRate, expectedUsefulPerPack, recommendedMode, estimatedCostRemaining, albumIntensity };
   }, [collection, specials]);
 
   function addLog(text) {
@@ -649,18 +668,103 @@ function TeamDetail({ code, stickers, markOwned, addDuplicate, markTraded, remov
 }
 
 function Stats({ totals, packs }) {
-  const rows = [
-    ["Conseguidas", `${totals.owned}/${totals.total}`],
-    ["Normales", `${totals.normalOwned}/960`],
-    ["Especiales", `${totals.specialOwned}/34`],
-    ["Faltantes", totals.missing],
-    ["Repetidas disponibles", totals.availableDupes],
-    ["Repetidas cambiadas", totals.traded],
-    ["Probabilidad próxima nueva", `${totals.nextNewProbability}%`],
-    ["Sobres estimados faltantes", totals.estimatedPacks],
-    ["Sobres abiertos", packs],
+  const mainStats = [
+    ["Avance total", `${totals.progress}%`, <TrendingUp/>],
+    ["Conseguidas", `${totals.owned}/${totals.total}`, <Trophy/>],
+    ["Normales", `${totals.normalOwned}/960`, <Target/>],
+    ["Especiales", `${totals.specialOwned}/34`, <Star/>],
+    ["Faltantes", totals.missing, <XCircle/>],
+    ["Sobres abiertos", packs, <PackageOpen/>],
+    ["Repetidas disponibles", totals.availableDupes, <Repeat2/>],
+    ["Eficiencia útil", `${totals.usefulRate}%`, <Medal/>],
   ];
-  return <section className="stats">{rows.map(([a,b]) => <div className="stat" key={a}><span>{a}</span><strong>{b}</strong></div>)}</section>
+
+  const smartStats = [
+    ["Probabilidad próxima nueva", `${totals.nextNewProbability}%`],
+    ["Útiles esperadas por sobre", `${totals.expectedUsefulPerPack}`],
+    ["Tasa de repetición", `${totals.duplicateRate}%`],
+    ["Sobres estimados faltantes", totals.estimatedPacks],
+    ["Costo estimado restante", `$${totals.estimatedCostRemaining.toLocaleString("es-MX")} MXN`],
+    ["Estrategia sugerida", totals.recommendedMode],
+    ["Estado del álbum", totals.albumIntensity],
+    ["Selecciones completas", totals.completedTeams],
+    ["Selecciones casi completas", totals.almostTeams],
+  ];
+
+  return (
+    <div className="statsPage">
+      <section className="statsHero card">
+        <div>
+          <h2><BarChart3/> Numeralia inteligente</h2>
+          <p>Lectura rápida del avance, dificultad restante y estrategia recomendada.</p>
+        </div>
+        <div className="bigProgress">
+          <strong>{totals.progress}%</strong>
+          <span>{totals.owned}/{totals.total} estampas</span>
+          <div className="bar"><div style={{ width: `${totals.progress}%` }} /></div>
+        </div>
+      </section>
+
+      <section className="stats">{mainStats.map(([a,b,icon]) => (
+        <div className="stat" key={a}><span>{a}{icon}</span><strong>{b}</strong></div>
+      ))}</section>
+
+      <section className="card">
+        <h2><Target/> Recomendación</h2>
+        <div className={`recommendation ${totals.recommendedMode.includes("sobres") ? "packs" : totals.recommendedMode.includes("+") ? "mixed" : "trade"}`}>
+          <strong>{totals.recommendedMode}</strong>
+          <p>
+            Con el avance actual, la probabilidad de que la siguiente estampa sea nueva es de {totals.nextNewProbability}%.
+            La app estima {totals.expectedUsefulPerPack} estampas útiles por sobre.
+          </p>
+        </div>
+      </section>
+
+      <section className="smartGrid">
+        {smartStats.map(([label, value]) => (
+          <div className="smartCard" key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+          </div>
+        ))}
+      </section>
+
+      <section className="rankings">
+        <div className="card">
+          <h2><Medal/> Más avanzadas</h2>
+          <TeamRanking teams={totals.strongestTeams} />
+        </div>
+        <div className="card">
+          <h2><CalendarDays/> Más atrasadas</h2>
+          <TeamRanking teams={totals.weakestTeams} />
+        </div>
+      </section>
+
+      <section className="card">
+        <h2><Wallet/> Nota de costos</h2>
+        <p>El costo estimado usa un supuesto editable de <b>$21 MXN por sobre</b>. Más adelante podemos agregar configuración para cambiar precio por sobre y estampas por sobre.</p>
+      </section>
+    </div>
+  );
+}
+
+function TeamRanking({ teams }) {
+  return (
+    <div className="teamRanking">
+      {teams.map(team => (
+        <div key={team.code} className="rankRow">
+          <div>
+            <strong>{team.code}</strong>
+            <span>{team.name}</span>
+          </div>
+          <div className="rankBar">
+            <div style={{ width: `${(team.owned / 20) * 100}%` }} />
+          </div>
+          <b>{team.owned}/20</b>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function Duplicates({ collection, markTraded }) {
