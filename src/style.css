@@ -57,3 +57,64 @@
 .specialGroup{margin-top:24px}
 .specialGroup h3{margin-bottom:12px}
 .special.owned{background:rgba(16,185,129,.2);border-color:rgba(110,231,183,.3)}
+
+
+.autoPacks{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0}
+.autoPacks div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:16px}
+.autoPacks span{display:block;color:#cbd5e1;font-size:13px}
+.autoPacks strong{display:block;font-size:32px;margin-top:4px}
+.autoPacks small{color:#94a3b8}
+.showLogBtn{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:white;border-radius:18px;padding:14px 18px;font-weight:900;cursor:pointer;margin:8px 0 18px}
+.miniBtns button svg{display:block;margin:auto}
+.extraStickersPanel{margin-top:28px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:18px}
+.extraStickersPanel h3{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.extraStickersPanel p{margin-top:0}
+.extraForm{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin:14px 0}
+.extraForm input,.extraForm select{background:#0f172a;color:white;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:14px}
+.extraForm button{border:0;border-radius:16px;padding:14px;font-weight:900;background:#fde047;color:#020617;display:flex;gap:8px;align-items:center;justify-content:center;cursor:pointer}
+.extraForm button:disabled{opacity:.45;cursor:not-allowed}
+.extraList{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.extraItem{border-radius:18px;padding:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08)}
+.extraItem strong{display:block;font-size:18px}
+.extraItem span{text-transform:capitalize;color:#cbd5e1;display:block;margin:4px 0 10px}
+.extraItem button{border:0;border-radius:12px;background:rgba(239,68,68,.22);color:#fecaca;padding:10px;font-weight:800;display:flex;gap:6px;align-items:center;cursor:pointer}
+.extraItem.morado{box-shadow:inset 0 0 0 2px rgba(168,85,247,.25)}
+.extraItem.bronce{box-shadow:inset 0 0 0 2px rgba(180,83,9,.35)}
+.extraItem.plata{box-shadow:inset 0 0 0 2px rgba(203,213,225,.35)}
+.extraItem.oro{box-shadow:inset 0 0 0 2px rgba(250,204,21,.35)}
+@media(max-width:800px){.extraForm{grid-template-columns:1fr}}
+
+
+/* v7.1 fix: botones dentro de tarjeta de estampa */
+.sticker{
+  overflow:hidden;
+}
+
+.miniBtns{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:4px;
+  width:100%;
+}
+
+.miniBtns button{
+  min-width:0;
+  width:100%;
+  padding:7px 0;
+  border-radius:10px;
+  font-size:11px;
+}
+
+.miniBtns button svg{
+  width:12px;
+  height:12px;
+}
+
+@media(max-width:800px){
+  .stickers{
+    grid-template-columns:repeat(auto-fit,minmax(92px,1fr));
+  }
+  .miniBtns button{
+    min-height:32px;
+  }
+}

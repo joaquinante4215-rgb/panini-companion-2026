@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload } from "lucide-react";
+import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { loadCloudAlbum, saveCloudAlbum } from "./firebase";
 
@@ -109,8 +109,11 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [quickCode, setQuickCode] = useState("");
   const [captureFeedback, setCaptureFeedback] = useState(null);
-  const [packs, setPacks] = useState(() => Number(localStorage.getItem("panini2026_packs") || 0));
+  const [captureCount, setCaptureCount] = useState(() => Number(localStorage.getItem("panini2026_captureCount") || 0));
+  const packs = Math.floor(captureCount / 7);
   const [log, setLog] = useState(() => safeLoad("panini2026_log", []));
+  const [showLog, setShowLog] = useState(false);
+  const [extraStickers, setExtraStickers] = useState(() => safeLoad("panini2026_extraStickers", []));
   const [undoStack, setUndoStack] = useState(() => safeLoad("panini2026_undo", []));
   const [cloudStatus, setCloudStatus] = useState("local");
   const [cloudReady, setCloudReady] = useState(false);
@@ -118,7 +121,8 @@ export default function App() {
   useEffect(() => localStorage.setItem("panini2026_collection", JSON.stringify(collection)), [collection]);
   useEffect(() => localStorage.setItem("panini2026_specials", JSON.stringify(specials)), [specials]);
   useEffect(() => localStorage.setItem("panini2026_log", JSON.stringify(log)), [log]);
-  useEffect(() => localStorage.setItem("panini2026_packs", String(packs)), [packs]);
+  useEffect(() => localStorage.setItem("panini2026_captureCount", String(captureCount)), [captureCount]);
+  useEffect(() => localStorage.setItem("panini2026_extraStickers", JSON.stringify(extraStickers)), [extraStickers]);
   useEffect(() => localStorage.setItem("panini2026_undo", JSON.stringify(undoStack)), [undoStack]);
 
   useEffect(() => {
@@ -130,7 +134,8 @@ export default function App() {
         if (cloudData && cloudData.collection) {
           setCollection(cloudData.collection);
           setSpecials(cloudData.specials || initialSpecials());
-          setPacks(Number(cloudData.packs || 0));
+          setCaptureCount(Number(cloudData.captureCount || Number(cloudData.packs || 0) * 7 || 0));
+          setExtraStickers(Array.isArray(cloudData.extraStickers) ? cloudData.extraStickers : []);
           setLog(Array.isArray(cloudData.log) ? cloudData.log : []);
           setUndoStack(Array.isArray(cloudData.undoStack) ? cloudData.undoStack : []);
           setCloudStatus("sincronizado");
@@ -161,7 +166,9 @@ export default function App() {
           specials,
           packs,
           log,
-          undoStack
+          undoStack,
+          extraStickers,
+          captureCount
         });
         setCloudStatus("sincronizado");
       } catch (error) {
@@ -171,7 +178,7 @@ export default function App() {
     }, 700);
 
     return () => window.clearTimeout(timeout);
-  }, [collection, specials, packs, log, undoStack, cloudReady]);
+  }, [collection, specials, captureCount, log, undoStack, extraStickers, cloudReady]);
 
   const totals = useMemo(() => {
     const normal = Object.values(collection).flat();
@@ -215,8 +222,10 @@ export default function App() {
       label,
       collection,
       specials,
+      captureCount,
       packs,
-      log
+      log,
+      extraStickers
     }, ...prev].slice(0, 10));
   }
 
@@ -228,7 +237,8 @@ export default function App() {
     }
     setCollection(last.collection);
     setSpecials(last.specials);
-    setPacks(last.packs);
+    setCaptureCount(Number(last.captureCount || Number(last.packs || 0) * 7 || 0));
+    setExtraStickers(Array.isArray(last.extraStickers) ? last.extraStickers : extraStickers);
     setLog([{ text: `Deshacer: ${last.label}`, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }, ...last.log].slice(0, 30));
     setUndoStack(prev => prev.slice(1));
   }
@@ -239,8 +249,10 @@ export default function App() {
       createdAt: new Date().toISOString(),
       collection,
       specials,
+      captureCount,
       packs,
       log,
+      extraStickers,
       undoStack
     };
 
@@ -282,7 +294,8 @@ export default function App() {
 
         setCollection(data.collection || initialCollection());
         setSpecials(data.specials || initialSpecials());
-        setPacks(Number(data.packs || 0));
+        setCaptureCount(Number(data.captureCount || Number(data.packs || 0) * 7 || 0));
+        setExtraStickers(Array.isArray(data.extraStickers) ? data.extraStickers : []);
         setLog(Array.isArray(data.log) ? data.log : []);
         setUndoStack(Array.isArray(data.undoStack) ? data.undoStack : []);
 
@@ -318,6 +331,27 @@ export default function App() {
     addLog(`${code}${n}: marcada como cambiada`);
   }
 
+  function removeNormalCapture(code, n) {
+    const sticker = collection?.[code]?.find(s => s.number === n);
+    if (!sticker) return;
+
+    saveUndoSnapshot(`${code}${n}: quitar captura`);
+
+    setCollection(prev => ({
+      ...prev,
+      [code]: prev[code].map(s => {
+        if (s.number !== n) return s;
+        if (s.duplicates > s.traded) return { ...s, duplicates: s.duplicates - 1 };
+        if (s.owned) return { ...s, owned: false };
+        return s;
+      })
+    }));
+
+    setCaptureCount(prev => Math.max(0, prev - 1));
+    addLog(`${code}${n}: captura retirada`);
+    showFeedback("error", `${code}${n} retirada`, "Se corrigió la captura");
+  }
+
   function processSpecialQuickCode(specialId) {
     const special = specials.find(item => item.id === specialId);
 
@@ -342,6 +376,26 @@ export default function App() {
       addLog(`${special.label}: nueva conseguida`);
       showFeedback("new", `${special.label} nueva`, "Se marcó como conseguida");
     }
+
+    setCaptureCount(prev => prev + 1);
+  }
+
+  function removeSpecialCapture(id) {
+    const special = specials.find(item => item.id === id);
+    if (!special) return;
+
+    saveUndoSnapshot(`${special.label}: quitar captura`);
+
+    setSpecials(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      if (item.duplicates > item.traded) return { ...item, duplicates: item.duplicates - 1 };
+      if (item.owned) return { ...item, owned: false };
+      return item;
+    }));
+
+    setCaptureCount(prev => Math.max(0, prev - 1));
+    addLog(`${special.label}: captura retirada`);
+    showFeedback("error", `${special.label} retirada`, "Se corrigió la captura especial");
   }
 
   function processQuickCode() {
@@ -396,7 +450,45 @@ export default function App() {
       showFeedback("new", `${code}${number} nueva`, "Se marcó como conseguida");
     }
 
+    setCaptureCount(prev => prev + 1);
     setQuickCode("");
+  }
+
+  function addExtraSticker(playerName, color) {
+    const name = playerName.trim();
+    if (!name) {
+      showFeedback("error", "Falta jugador", "Escribe el nombre del jugador");
+      return false;
+    }
+
+    if (extraStickers.length >= 10) {
+      showFeedback("error", "Límite alcanzado", "Solo se pueden capturar 10 Extra Stickers");
+      return false;
+    }
+
+    saveUndoSnapshot("agregar Extra Sticker");
+
+    const item = {
+      id: `EXTRA-${Date.now()}`,
+      playerName: name,
+      color,
+      createdAt: new Date().toISOString()
+    };
+
+    setExtraStickers(prev => [...prev, item]);
+    addLog(`Extra Sticker: ${name} (${color})`);
+    showFeedback("new", "Extra Sticker agregado", `${name} · ${color}`);
+    return true;
+  }
+
+  function removeExtraSticker(id) {
+    const item = extraStickers.find(x => x.id === id);
+    if (!item) return;
+
+    saveUndoSnapshot("quitar Extra Sticker");
+    setExtraStickers(prev => prev.filter(x => x.id !== id));
+    addLog(`Extra Sticker retirado: ${item.playerName}`);
+    showFeedback("error", "Extra Sticker retirado", item.playerName);
   }
 
   const filteredGroups = groups.map(g => ({
@@ -434,7 +526,7 @@ export default function App() {
         <button onClick={async () => {
           try {
             setCloudStatus("guardando");
-            await saveCloudAlbum({ collection, specials, packs, log, undoStack });
+            await saveCloudAlbum({ collection, specials, packs, captureCount, log, undoStack, extraStickers });
             setCloudStatus("sincronizado");
             showFeedback("new", "Nube actualizada", "Avance guardado en Firebase");
           } catch (error) {
@@ -473,23 +565,32 @@ export default function App() {
               <button key={code} onClick={() => setQuickCode(code)}>{code}</button>
             ))}
           </div>
-          <div className="manual">
-            <select value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)}>
-              {Object.keys(collection).map(code => <option key={code} value={code}>{code} - {countryNames[code]}</option>)}
-            </select>
-            <select id="manualNum">
-              {Array.from({ length: 20 }, (_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
-            </select>
-            <button onClick={() => markOwned(selectedTeam, Number(document.getElementById("manualNum").value))}><CheckCircle2/> Nueva</button>
-            <button onClick={() => addDuplicate(selectedTeam, Number(document.getElementById("manualNum").value))}><Repeat2/> Repetida</button>
-            <button onClick={() => { saveUndoSnapshot("sumar sobre abierto"); setPacks(p => p + 1); }}>+ Sobre abierto ({packs})</button>
+          <div className="autoPacks">
+            <div>
+              <span>Estampas capturadas</span>
+              <strong>{captureCount}</strong>
+            </div>
+            <div>
+              <span>Sobres abiertos estimados</span>
+              <strong>{packs}</strong>
+              <small>1 sobre por cada 7 estampas capturadas</small>
+            </div>
           </div>
-          <h3>Últimos movimientos</h3>
-          <div className="log">
-            {log.length === 0 ? <p className="muted">Aún no hay capturas.</p> : log.map((item, i) => (
-              <div key={i}><span>{item.text}</span><small>{item.time}</small></div>
-            ))}
-          </div>
+
+          <button className="showLogBtn" onClick={() => setShowLog(prev => !prev)}>
+            {showLog ? "Ocultar últimos movimientos" : "Mostrar últimos movimientos"}
+          </button>
+
+          {showLog && (
+            <>
+              <h3>Últimos movimientos</h3>
+              <div className="log">
+                {log.length === 0 ? <p className="muted">Aún no hay capturas.</p> : log.map((item, i) => (
+                  <div key={i}><span>{item.text}</span><small>{item.time}</small></div>
+                ))}
+              </div>
+            </>
+          )}
         </section>
       )}
 
@@ -512,18 +613,18 @@ export default function App() {
               </section>
             ))}
           </div>
-          <TeamDetail code={selectedTeam} stickers={collection[selectedTeam]} markOwned={markOwned} addDuplicate={addDuplicate} markTraded={markTraded} />
+          <TeamDetail code={selectedTeam} stickers={collection[selectedTeam]} markOwned={markOwned} addDuplicate={addDuplicate} markTraded={markTraded} removeNormalCapture={removeNormalCapture} />
         </>
       )}
 
       {tab === "stats" && <Stats totals={totals} packs={packs}/>}
       {tab === "duplicates" && <Duplicates collection={collection} markTraded={markTraded}/>}
-      {tab === "specials" && <Specials specials={specials} setSpecials={setSpecials}/>}
+      {tab === "specials" && <Specials specials={specials} setSpecials={setSpecials} removeSpecialCapture={removeSpecialCapture} extraStickers={extraStickers} addExtraSticker={addExtraSticker} removeExtraSticker={removeExtraSticker}/>}
     </div>
   )
 }
 
-function TeamDetail({ code, stickers, markOwned, addDuplicate, markTraded }) {
+function TeamDetail({ code, stickers, markOwned, addDuplicate, markTraded, removeNormalCapture }) {
   const owned = stickers.filter(s => s.owned).length;
   return (
     <section className="card">
@@ -537,6 +638,7 @@ function TeamDetail({ code, stickers, markOwned, addDuplicate, markTraded }) {
               <button onClick={() => markOwned(code, s.number)}>✓</button>
               <button onClick={() => addDuplicate(code, s.number)}>R</button>
               <button onClick={() => markTraded(code, s.number)}>C</button>
+              <button onClick={() => removeNormalCapture(code, s.number)}><Trash2 size={12}/></button>
             </div>
             {(s.duplicates > 0 || s.traded > 0) && <small>R:{s.duplicates} C:{s.traded}</small>}
           </div>
@@ -566,7 +668,7 @@ function Duplicates({ collection, markTraded }) {
   return <div className="groups">{rows.map(r => <section className="card" key={r.code}><h3>{flags[r.code]} {countryNames[r.code]}</h3><div className="chips">{r.stickers.map(s => <button key={s.number} onClick={() => markTraded(r.code, s.number)}>{s.number} × {s.duplicates - s.traded}</button>)}</div></section>)}</div>
 }
 
-function Specials({ specials, setSpecials }) {
+function Specials({ specials, setSpecials, removeSpecialCapture, extraStickers, addExtraSticker, removeExtraSticker }) {
   function update(id, action) {
     setUndoStack(prev => [{ label: `${id}: actualizar especial`, collection, specials, packs, log }, ...prev].slice(0, 10));
     setSpecials(prev => prev.map(s => {
@@ -611,12 +713,53 @@ function Specials({ specials, setSpecials }) {
                   <button onClick={() => update(s.id, "owned")}>Tengo</button>
                   <button onClick={() => update(s.id, "dupe")}>Repetida</button>
                   <button onClick={() => update(s.id, "trade")}>Cambiada</button>
+                  <button onClick={() => removeSpecialCapture(s.id)}>Quitar</button>
                 </div>
               </div>
             ))}
           </div>
         </div>
       ))}
+      <ExtraStickers extraStickers={extraStickers} addExtraSticker={addExtraSticker} removeExtraSticker={removeExtraSticker} />
     </section>
+  );
+}
+
+function ExtraStickers({ extraStickers, addExtraSticker, removeExtraSticker }) {
+  const [playerName, setPlayerName] = useState("");
+  const [color, setColor] = useState("morado");
+
+  function handleAdd() {
+    const ok = addExtraSticker(playerName, color);
+    if (ok) {
+      setPlayerName("");
+      setColor("morado");
+    }
+  }
+
+  return (
+    <div className="extraStickersPanel">
+      <h3>Extra Stickers para presumir <small>{extraStickers.length}/10</small></h3>
+      <p>No cuentan para el total de 994 ni para el % de avance del álbum.</p>
+      <div className="extraForm">
+        <input value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="Nombre del jugador" />
+        <select value={color} onChange={e => setColor(e.target.value)}>
+          <option value="morado">Morado</option>
+          <option value="bronce">Bronce</option>
+          <option value="plata">Plata</option>
+          <option value="oro">Oro</option>
+        </select>
+        <button onClick={handleAdd} disabled={extraStickers.length >= 10}><PlusCircle size={16}/> Agregar</button>
+      </div>
+      <div className="extraList">
+        {extraStickers.length === 0 ? <p className="muted">Aún no hay Extra Stickers capturados.</p> : extraStickers.map(item => (
+          <div key={item.id} className={`extraItem ${item.color}`}>
+            <strong>{item.playerName}</strong>
+            <span>{item.color}</span>
+            <button onClick={() => removeExtraSticker(item.id)}><Trash2 size={14}/> Quitar</button>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

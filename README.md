@@ -86,3 +86,22 @@ Las especiales:
 - tienen repetidas,
 - pueden marcarse como cambiadas,
 - se pueden capturar desde captura express.
+
+
+## Cambios v7 - UX después de pruebas reales
+
+- Se eliminó la captura manual por dropdown.
+- Sobres abiertos automáticos: 1 sobre por cada 7 estampas capturadas.
+- Últimos movimientos ocultos con botón para mostrar/ocultar.
+- Opción para quitar capturas erróneas en normales y especiales.
+- Sección de hasta 10 Extra Stickers:
+  - Nombre del jugador
+  - Color: morado, bronce, plata u oro
+- Los Extra Stickers no cuentan para el total de 994 ni para el % de avance.
+
+
+## Cambios v7.1
+
+- Corrección visual del botón de borrar en tarjetas de estampas.
+- Los botones de cada estampa ahora se acomodan en grid de 4 columnas.
+- El botón de borrar ya no se desborda y queda seleccionable.
