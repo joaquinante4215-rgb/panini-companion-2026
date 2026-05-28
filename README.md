@@ -186,3 +186,29 @@ Las especiales:
 - Cada perfil puede tener PIN independiente.
 - PIN default: 2026.
 - Creación de perfiles ahora pide PIN.
+
+
+## Fix v9.4.1
+
+- Los perfiles nuevos ahora siempre arrancan con álbum vacío.
+- Avance inicial del nuevo perfil: 0%.
+- No copian avance, repetidas, especiales ni extras del perfil activo.
+
+
+## Cambios v9.4.2 - Tipo de coleccionista
+
+- Se elimina la opción de color al crear perfiles.
+- Se reemplaza por la pregunta: “¿Quién colecciona?”
+  - 👧 Coleccionista niña
+  - 👦 Coleccionista niño
+- La respuesta se guarda como `avatarType`.
+- El color visual se asigna automáticamente:
+  - niña → rosa
+  - niño → azul
+- Esto prepara la app para asignar avatares automáticos en el siguiente sprint.
+
+
+## Fix v9.4.4
+
+- Se eliminó el badge repetido del perfil activo debajo del recuadro de avance.
+- En Familia Coleccionista ya no se muestra “niña/niño”; solo nombre y avance.

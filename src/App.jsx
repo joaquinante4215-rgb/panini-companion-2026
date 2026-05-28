@@ -110,17 +110,41 @@ function slugifyProfileName(name) {
     .replace(/(^-|-$)/g, "") || `perfil-${Date.now()}`;
 }
 
-function createEmptyProfile(name = "Joaquín", emoji = "⚽", color = "dorado") {
+function createEmptyProfile(name = "Joaquín", emoji = "⚽", avatarType = "girl") {
+  const emptyCollection = initialCollection();
+  const emptySpecials = initialSpecials();
+
+  Object.keys(emptyCollection).forEach(code => {
+    emptyCollection[code] = emptyCollection[code].map(sticker => ({
+      ...sticker,
+      owned: false,
+      duplicates: 0,
+      traded: 0
+    }));
+  });
+
   return {
     id: slugifyProfileName(name),
     name,
     emoji,
-    color,
-    collection: initialCollection(),
-    specials: initialSpecials(),
+    avatarType,
+    color: avatarType === "girl" ? "rosa" : "azul",
+    pin: "2026",
+    collection: emptyCollection,
+    specials: emptySpecials.map(sticker => ({
+      ...sticker,
+      owned: false,
+      duplicates: 0,
+      traded: 0
+    })),
     extraStickers: [],
     captureCount: 0,
-    log: [{ text: `Perfil creado: ${name}`, time: "Perfil" }],
+    log: [
+      {
+        text: `Perfil creado: ${name}`,
+        time: "Perfil"
+      }
+    ],
     undoStack: []
   };
 }
@@ -130,7 +154,8 @@ function createProfileFromLegacy(name, legacy) {
     id: slugifyProfileName(name),
     name,
     emoji: "⚽",
-    color: "dorado",
+    avatarType: "girl",
+    color: "rosa",
     pin: "2026",
     collection: legacy.collection,
     specials: legacy.specials,
@@ -284,10 +309,10 @@ export default function App() {
     }));
   }
 
-  function createNewFamilyProfile(name, emoji = "⚽", color = "azul", pin = "2026") {
+  function createNewFamilyProfile(name, emoji = "⚽", avatarType = "girl", pin = "2026") {
     const cleanName = name.trim();
     if (!cleanName) return;
-    const newProfile = createEmptyProfile(cleanName, emoji, color);
+    const newProfile = createEmptyProfile(cleanName, emoji, avatarType);
     setFamilyProfiles(prev => {
       const existingIds = new Set(prev.map(p => p.id));
       let id = newProfile.id;
@@ -296,8 +321,19 @@ export default function App() {
         id = `${newProfile.id}-${counter}`;
         counter += 1;
       }
-      const finalProfile = { ...newProfile, id, pin };
+      const finalProfile = {
+        ...createEmptyProfile(cleanName, emoji, avatarType),
+        id,
+        avatarType,
+        color: avatarType === "girl" ? "rosa" : "azul",
+        pin,
+        captureCount: 0,
+        extraStickers: [],
+        log: [{ text: `Perfil creado: ${cleanName}`, time: "Perfil" }],
+        undoStack: []
+      };
       setActiveProfileId(finalProfile.id);
+      showFeedback("new", "Perfil creado", `${cleanName} inicia en 0%`);
       return [...prev, finalProfile];
     });
   }
@@ -696,10 +732,6 @@ export default function App() {
         </div>
       </motion.header>
 
-      <div className="saveBoxMini">
-        <span>{activeProfile.emoji} {activeProfile.name}</span>
-      </div>
-
       <nav className="tabs">
         <button onClick={() => setTab("capture")} className={tab === "capture" ? "active" : ""}><PackageOpen size={17}/> Abrí sobre</button>
         <button onClick={() => setTab("album")} className={tab === "album" ? "active" : ""}><Trophy size={17}/> Mi álbum</button>
@@ -821,15 +853,15 @@ function ProfileBar({ profiles, activeProfile, setActiveProfileId, createNewFami
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("⚽");
-  const [color, setColor] = useState("azul");
+  const [avatarType, setAvatarType] = useState("girl");
   const [pin, setPin] = useState("2026");
 
   function handleCreate() {
     if (!name.trim()) return;
-    createNewFamilyProfile(name, emoji, color, pin);
+    createNewFamilyProfile(name, emoji, avatarType, pin);
     setName("");
     setEmoji("⚽");
-    setColor("azul");
+    setAvatarType("girl");
     setPin("2026");
     setShowCreate(false);
   }
@@ -881,12 +913,9 @@ function ProfileBar({ profiles, activeProfile, setActiveProfileId, createNewFami
             <option value="🦁">🦁</option>
             <option value="👑">👑</option>
           </select>
-          <select value={color} onChange={e => setColor(e.target.value)}>
-            <option value="azul">Azul</option>
-            <option value="dorado">Dorado</option>
-            <option value="morado">Morado</option>
-            <option value="verde">Verde</option>
-            <option value="rosa">Rosa</option>
+          <select value={avatarType} onChange={e => setAvatarType(e.target.value)} title="¿Quién colecciona?">
+            <option value="girl">👧 Goleadora Estrella</option>
+            <option value="boy">👦 Portero Imbatible</option>
           </select>
           <input value={pin} maxLength={6} onChange={e => setPin(e.target.value.replace(/\D/g, ""))} placeholder="PIN" />
           <button onClick={handleCreate}><Lock size={15}/> Crear</button>
