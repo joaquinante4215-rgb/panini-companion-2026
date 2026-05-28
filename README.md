@@ -123,3 +123,66 @@ Las especiales:
 - Icono básico.
 - Service Worker para cache básico.
 - En iPad/celular se puede agregar a pantalla de inicio.
+
+
+## Cambios v9.0 - Multiusuario familiar local
+
+- Perfiles familiares independientes.
+- Migración automática del álbum actual al perfil inicial "Joaquín".
+- Selector de perfiles.
+- Crear nuevo perfil con nombre, emoji y color.
+- Ranking familiar.
+- Vista de intercambios internos:
+  - quién tiene repetida
+  - quién la necesita
+- La sincronización en nube multiusuario queda preparada para v9.2.
+
+
+## Cambios v9.1 - Motor familiar real
+
+- Captura y Familia quedan en pantallas independientes.
+- El selector de perfiles, ranking y comparador viven dentro de la pestaña Familia.
+- Migración reforzada:
+  - si hay avance local previo, se intenta convertir automáticamente al perfil Valentina.
+  - si existía Joaquín, se renombra a Valentina.
+- Comparador familiar mejorado:
+  - resumen por perfil
+  - faltantes
+  - repetidas disponibles
+  - intercambios ideales por par de perfiles
+  - sugerencias más claras
+
+
+## Fix v9.1.3
+- Se corrigió el render de la pestaña Familia.
+- Ahora la pestaña Familia muestra ProfileBar, Ranking familiar y FamilyDashboard.
+
+
+## Cambios v9.2 - Herramientas familiares
+
+- Opción para eliminar perfiles desde Familia coleccionista.
+- No permite eliminar el último perfil.
+- Listado para WhatsApp / imprimir por perfil:
+  - faltantes
+  - repetidas disponibles
+- Botones:
+  - Copiar
+  - WhatsApp
+  - Imprimir
+
+
+## Cambios v9.3 - Familia limpia
+
+- Se retiró la sección visual de Intercambios familiares para reducir saturación.
+- Eliminar perfil ahora aparece como icono sutil 🗑️ en cada perfil.
+- El perfil activo aparece dentro del recuadro de Avance total.
+- El listado para WhatsApp / imprimir ahora agrupa faltantes y repetidas por Grupo A, Grupo B, etc., y Especiales.
+
+
+## Cambios v9.4 - PIN y limpieza visual
+
+- Perfil activo reducido a badge sutil.
+- Cambio de perfil protegido con PIN.
+- Cada perfil puede tener PIN independiente.
+- PIN default: 2026.
+- Creación de perfiles ahora pide PIN.

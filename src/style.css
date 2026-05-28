@@ -147,3 +147,196 @@
   .bigProgress{margin-top:14px}
   .rankRow{grid-template-columns:75px 1fr 48px}
 }
+
+
+.profileBar,.familyRanking{margin-bottom:18px}
+.profileHeader{display:flex;justify-content:space-between;align-items:center;gap:14px}
+.profileHeader button,.createProfile button{border:0;border-radius:16px;background:#fde047;color:#020617;padding:12px 16px;font-weight:900;display:flex;gap:8px;align-items:center;cursor:pointer}
+.profileChips{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.profileChip{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:white;border-radius:20px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;cursor:pointer;min-width:150px}
+.profileChip.active{box-shadow:0 0 0 3px rgba(250,204,21,.28);border-color:rgba(250,204,21,.55)}
+.profileChip span{font-size:22px}.profileChip small{color:#cbd5e1}
+.profileChip.azul{background:rgba(59,130,246,.16)}.profileChip.dorado{background:rgba(250,204,21,.16)}.profileChip.morado{background:rgba(168,85,247,.16)}.profileChip.verde{background:rgba(34,197,94,.16)}.profileChip.rosa{background:rgba(236,72,153,.16)}
+.createProfile{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;margin-top:14px}
+.createProfile input,.createProfile select{background:#0f172a;color:white;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:12px}
+.familyRows{display:grid;gap:10px}
+.familyRow{display:grid;grid-template-columns:30px 34px 120px 1fr 60px;gap:10px;align-items:center}
+.familyRow span{font-size:24px}.familyRow em{font-style:normal;text-align:right;color:#fef08a;font-weight:900}
+.familyProgress{height:12px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
+.familyProgress div{height:100%;background:white}
+.familyDashboard .emptyFamily{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:18px}
+.emptyFamily span{display:block;color:#cbd5e1;margin-top:4px}
+.exchangeList{display:grid;gap:10px}
+.exchangeItem{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px}
+.exchangeItem b{background:#fde047;color:#020617;border-radius:999px;padding:5px 10px}
+.exchangeItem em{font-style:normal;color:#cbd5e1}
+@media(max-width:800px){
+  .profileHeader{display:block}.profileHeader button{margin-top:12px}
+  .createProfile{grid-template-columns:1fr}
+  .familyRow{grid-template-columns:24px 30px 1fr 56px}
+  .familyRow .familyProgress{grid-column:1 / -1}
+}
+
+
+.familyScreen{display:grid;gap:18px}
+.familySummaryGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0}
+.familySummaryCard{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:14px}
+.familySummaryCard strong{display:block;font-size:18px;margin-bottom:8px}
+.familySummaryCard span{display:block;color:#cbd5e1;font-size:13px;margin-top:4px}
+.pairSummary{background:rgba(250,204,21,.10);border:1px solid rgba(250,204,21,.22);border-radius:22px;padding:16px;margin:16px 0}
+.pairSummary h3{margin-bottom:10px}
+.pairRow{display:flex;justify-content:space-between;gap:10px;background:rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;margin-top:8px}
+.pairRow span{color:#fef08a;font-weight:800}
+
+
+.profileChipWrapper{
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.08);
+  border-radius:20px;
+  overflow:hidden;
+  min-width:170px;
+}
+.profileChipWrapper.active{box-shadow:0 0 0 3px rgba(250,204,21,.28);border-color:rgba(250,204,21,.55)}
+.profileChipWrapper .profileChip{
+  border:0;
+  background:transparent;
+  width:100%;
+  border-radius:0;
+}
+.deleteProfileBtn{
+  width:100%;
+  border:0;
+  border-top:1px solid rgba(255,255,255,.12);
+  background:rgba(239,68,68,.18);
+  color:#fecaca;
+  padding:8px;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.profileListTools textarea{
+  width:100%;
+  min-height:220px;
+  margin-top:14px;
+  background:#0f172a;
+  color:white;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:18px;
+  padding:14px;
+  resize:vertical;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.listToolsControls{
+  display:grid;
+  grid-template-columns:2fr repeat(3,1fr);
+  gap:10px;
+  margin-top:14px;
+}
+.listToolsControls select,.listToolsControls button{
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.08);
+  color:white;
+  border-radius:16px;
+  padding:12px;
+  font-weight:900;
+}
+.listToolsControls button{
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+@media(max-width:800px){
+  .listToolsControls{grid-template-columns:1fr}
+}
+
+
+/* v9.3 limpieza visual familiar */
+.activeProfileMini{
+  display:block;
+  font-style:normal;
+  color:#fef08a;
+  font-weight:900;
+  font-size:14px;
+  margin:4px 0 2px;
+}
+
+.profileChipWrapper{
+  position:relative;
+}
+
+.deleteProfileBtn{
+  position:absolute;
+  top:6px;
+  right:6px;
+  width:26px;
+  height:26px;
+  border:0;
+  border-radius:999px;
+  background:rgba(239,68,68,.12);
+  color:#fecaca;
+  padding:0;
+  font-size:12px;
+  line-height:1;
+  opacity:.55;
+  cursor:pointer;
+}
+
+.deleteProfileBtn:hover{
+  opacity:1;
+  background:rgba(239,68,68,.28);
+}
+
+.profileChipWrapper .profileChip{
+  padding-right:34px;
+}
+
+.familyDashboard,
+.exchangeList,
+.pairSummary{
+  display:none !important;
+}
+
+.profileListTools{
+  margin-top:0;
+}
+
+.profileListTools textarea{
+  line-height:1.45;
+}
+
+
+/* v9.4 pin y limpieza visual */
+.saveBoxMini{
+  display:flex;
+  justify-content:flex-end;
+  margin-bottom:10px;
+}
+
+.saveBoxMini span{
+  font-size:12px;
+  color:#cbd5e1;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  padding:6px 10px;
+  border-radius:999px;
+  backdrop-filter:blur(10px);
+}
+
+.createProfile{
+  grid-template-columns:2fr 1fr 1fr 1fr auto;
+}
+
+.createProfile button svg{
+  width:14px;
+  height:14px;
+}
+
+.profileChip{
+  transition:all .18s ease;
+}
+
+.profileChip:hover{
+  transform:translateY(-1px);
+}

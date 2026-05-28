@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle, TrendingUp, Target, Wallet, CalendarDays, Medal } from "lucide-react";
+import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle, TrendingUp, Target, Wallet, CalendarDays, Medal, Users, UserPlus, Crown, ClipboardList, MessageCircle, Printer, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { loadCloudAlbum, saveCloudAlbum } from "./firebase";
 
@@ -101,84 +101,243 @@ function safeLoad(key, fallback) {
   }
 }
 
+function slugifyProfileName(name) {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "") || `perfil-${Date.now()}`;
+}
+
+function createEmptyProfile(name = "Joaquín", emoji = "⚽", color = "dorado") {
+  return {
+    id: slugifyProfileName(name),
+    name,
+    emoji,
+    color,
+    collection: initialCollection(),
+    specials: initialSpecials(),
+    extraStickers: [],
+    captureCount: 0,
+    log: [{ text: `Perfil creado: ${name}`, time: "Perfil" }],
+    undoStack: []
+  };
+}
+
+function createProfileFromLegacy(name, legacy) {
+  return {
+    id: slugifyProfileName(name),
+    name,
+    emoji: "⚽",
+    color: "dorado",
+    pin: "2026",
+    collection: legacy.collection,
+    specials: legacy.specials,
+    extraStickers: legacy.extraStickers || [],
+    captureCount: Number(legacy.captureCount || Number(legacy.packs || 0) * 7 || 0),
+    log: legacy.log || [],
+    undoStack: legacy.undoStack || []
+  };
+}
+
+function profileTotals(profile) {
+  const normal = Object.values(profile.collection || {}).flat();
+  const specials = profile.specials || [];
+  const all = [...normal, ...specials];
+  const total = all.length || 994;
+  const owned = all.filter(s => s.owned).length;
+  const dupes = all.reduce((sum, s) => sum + (s.duplicates || 0), 0);
+  const traded = all.reduce((sum, s) => sum + (s.traded || 0), 0);
+  return {
+    total,
+    owned,
+    progress: Math.round((owned / total) * 1000) / 10,
+    duplicatesAvailable: Math.max(0, dupes - traded)
+  };
+}
+
+function hasMeaningfulLegacyData(legacyCollection, legacySpecials) {
+  if (!legacyCollection || !legacySpecials) return false;
+  const normal = Object.values(legacyCollection).flat();
+  const specials = legacySpecials || [];
+  const owned = [...normal, ...specials].filter(s => s && s.owned).length;
+  const dupes = [...normal, ...specials].reduce((sum, s) => sum + (s?.duplicates || 0), 0);
+  return owned > 0 || dupes > 0;
+}
+
+function shouldUpgradeValentinaProfile(existingProfile, legacyCollection, legacySpecials) {
+  if (!existingProfile || !hasMeaningfulLegacyData(legacyCollection, legacySpecials)) return false;
+  const currentTotals = profileTotals(existingProfile);
+  const legacyOwned = [
+    ...Object.values(legacyCollection).flat(),
+    ...(legacySpecials || [])
+  ].filter(s => s && s.owned).length;
+  return currentTotals.owned === 0 && legacyOwned > 0;
+}
+
 export default function App() {
-  const [collection, setCollection] = useState(() => safeLoad("panini2026_collection", initialCollection()));
-  const [specials, setSpecials] = useState(() => safeLoad("panini2026_specials", initialSpecials()));
+  const [familyProfiles, setFamilyProfiles] = useState(() => {
+    const legacyCollection = safeLoad("panini2026_collection", null);
+    const legacySpecials = safeLoad("panini2026_specials", null);
+    const legacyLog = safeLoad("panini2026_log", []);
+    const legacyUndo = safeLoad("panini2026_undo", []);
+    const legacyExtras = safeLoad("panini2026_extraStickers", []);
+    const legacyProfile = hasMeaningfulLegacyData(legacyCollection, legacySpecials)
+      ? createProfileFromLegacy("Valentina", {
+          collection: legacyCollection,
+          specials: legacySpecials,
+          captureCount: Number(localStorage.getItem("panini2026_captureCount") || 0),
+          packs: Number(localStorage.getItem("panini2026_packs") || 0),
+          log: legacyLog,
+          undoStack: legacyUndo,
+          extraStickers: legacyExtras
+        })
+      : null;
+
+    const savedFamily = safeLoad("panini2026_familyProfiles", null);
+
+    if (savedFamily && savedFamily.length) {
+      if (legacyProfile) {
+        const index = savedFamily.findIndex(p => p.id === "valentina" || p.name === "Valentina" || p.name === "Joaquín");
+        if (index >= 0 && shouldUpgradeValentinaProfile(savedFamily[index], legacyCollection, legacySpecials)) {
+          const migrated = [...savedFamily];
+          migrated[index] = { ...legacyProfile, id: savedFamily[index].id, name: "Valentina" };
+          return migrated;
+        }
+      }
+      return savedFamily.map(p => p.name === "Joaquín" ? { ...p, name: "Valentina", id: p.id === "joaquin" ? "valentina" : p.id } : p);
+    }
+
+    if (legacyProfile) return [legacyProfile];
+
+    return [createEmptyProfile("Valentina", "⚽", "dorado")];
+  });
+
+  const [activeProfileId, setActiveProfileId] = useState(() => localStorage.getItem("panini2026_activeProfileId") || "valentina");
+  const activeProfile = familyProfiles.find(p => p.id === activeProfileId) || familyProfiles[0];
+
+  const collection = activeProfile.collection;
+  const specials = activeProfile.specials;
+  const extraStickers = activeProfile.extraStickers || [];
+  const captureCount = Number(activeProfile.captureCount || 0);
+  const packs = Math.floor(captureCount / 7);
+  const log = activeProfile.log || [];
+  const undoStack = activeProfile.undoStack || [];
+
   const [selectedTeam, setSelectedTeam] = useState("MEX");
   const [tab, setTab] = useState("capture");
   const [query, setQuery] = useState("");
   const [quickCode, setQuickCode] = useState("");
   const [captureFeedback, setCaptureFeedback] = useState(null);
-  const [captureCount, setCaptureCount] = useState(() => Number(localStorage.getItem("panini2026_captureCount") || 0));
-  const packs = Math.floor(captureCount / 7);
-  const [log, setLog] = useState(() => safeLoad("panini2026_log", []));
   const [showLog, setShowLog] = useState(false);
-  const [extraStickers, setExtraStickers] = useState(() => safeLoad("panini2026_extraStickers", []));
-  const [undoStack, setUndoStack] = useState(() => safeLoad("panini2026_undo", []));
   const [cloudStatus, setCloudStatus] = useState("local");
   const [cloudReady, setCloudReady] = useState(false);
 
-  useEffect(() => localStorage.setItem("panini2026_collection", JSON.stringify(collection)), [collection]);
-  useEffect(() => localStorage.setItem("panini2026_specials", JSON.stringify(specials)), [specials]);
-  useEffect(() => localStorage.setItem("panini2026_log", JSON.stringify(log)), [log]);
-  useEffect(() => localStorage.setItem("panini2026_captureCount", String(captureCount)), [captureCount]);
-  useEffect(() => localStorage.setItem("panini2026_extraStickers", JSON.stringify(extraStickers)), [extraStickers]);
-  useEffect(() => localStorage.setItem("panini2026_undo", JSON.stringify(undoStack)), [undoStack]);
+
+  function updateActiveProfile(updater) {
+    setFamilyProfiles(prev => prev.map(profile => {
+      if (profile.id !== activeProfile.id) return profile;
+      return typeof updater === "function" ? updater(profile) : { ...profile, ...updater };
+    }));
+  }
+
+  function setCollection(valueOrUpdater) {
+    updateActiveProfile(profile => ({
+      ...profile,
+      collection: typeof valueOrUpdater === "function" ? valueOrUpdater(profile.collection) : valueOrUpdater
+    }));
+  }
+
+  function setSpecials(valueOrUpdater) {
+    updateActiveProfile(profile => ({
+      ...profile,
+      specials: typeof valueOrUpdater === "function" ? valueOrUpdater(profile.specials) : valueOrUpdater
+    }));
+  }
+
+  function setExtraStickers(valueOrUpdater) {
+    updateActiveProfile(profile => ({
+      ...profile,
+      extraStickers: typeof valueOrUpdater === "function" ? valueOrUpdater(profile.extraStickers || []) : valueOrUpdater
+    }));
+  }
+
+  function setCaptureCount(valueOrUpdater) {
+    updateActiveProfile(profile => ({
+      ...profile,
+      captureCount: typeof valueOrUpdater === "function" ? valueOrUpdater(Number(profile.captureCount || 0)) : valueOrUpdater
+    }));
+  }
+
+  function setLog(valueOrUpdater) {
+    updateActiveProfile(profile => ({
+      ...profile,
+      log: typeof valueOrUpdater === "function" ? valueOrUpdater(profile.log || []) : valueOrUpdater
+    }));
+  }
+
+  function setUndoStack(valueOrUpdater) {
+    updateActiveProfile(profile => ({
+      ...profile,
+      undoStack: typeof valueOrUpdater === "function" ? valueOrUpdater(profile.undoStack || []) : valueOrUpdater
+    }));
+  }
+
+  function createNewFamilyProfile(name, emoji = "⚽", color = "azul", pin = "2026") {
+    const cleanName = name.trim();
+    if (!cleanName) return;
+    const newProfile = createEmptyProfile(cleanName, emoji, color);
+    setFamilyProfiles(prev => {
+      const existingIds = new Set(prev.map(p => p.id));
+      let id = newProfile.id;
+      let counter = 2;
+      while (existingIds.has(id)) {
+        id = `${newProfile.id}-${counter}`;
+        counter += 1;
+      }
+      const finalProfile = { ...newProfile, id, pin };
+      setActiveProfileId(finalProfile.id);
+      return [...prev, finalProfile];
+    });
+  }
+
+  function deleteFamilyProfile(profileId) {
+    setFamilyProfiles(prev => {
+      if (prev.length <= 1) {
+        showFeedback("error", "No se puede eliminar", "Debe existir al menos un perfil");
+        return prev;
+      }
+
+      const profile = prev.find(p => p.id === profileId);
+      if (!profile) return prev;
+
+      const ok = window.confirm(`¿Eliminar el perfil ${profile.name}? Esta acción no se puede deshacer.`);
+      if (!ok) return prev;
+
+      const next = prev.filter(p => p.id !== profileId);
+
+      if (activeProfile.id === profileId) {
+        setActiveProfileId(next[0].id);
+      }
+
+      showFeedback("error", "Perfil eliminado", profile.name);
+      return next;
+    });
+  }
+
+  useEffect(() => localStorage.setItem("panini2026_familyProfiles", JSON.stringify(familyProfiles)), [familyProfiles]);
+  useEffect(() => localStorage.setItem("panini2026_activeProfileId", activeProfile.id), [activeProfile.id]);
 
   useEffect(() => {
-    async function startCloudSync() {
-      try {
-        setCloudStatus("cargando nube");
-        const cloudData = await loadCloudAlbum();
-
-        if (cloudData && cloudData.collection) {
-          setCollection(cloudData.collection);
-          setSpecials(cloudData.specials || initialSpecials());
-          setCaptureCount(Number(cloudData.captureCount || Number(cloudData.packs || 0) * 7 || 0));
-          setExtraStickers(Array.isArray(cloudData.extraStickers) ? cloudData.extraStickers : []);
-          setLog(Array.isArray(cloudData.log) ? cloudData.log : []);
-          setUndoStack(Array.isArray(cloudData.undoStack) ? cloudData.undoStack : []);
-          setCloudStatus("sincronizado");
-        } else {
-          setCloudStatus("nube inicializada");
-        }
-
-        setCloudReady(true);
-      } catch (error) {
-        console.error("Firebase load error", error);
-        setCloudStatus("modo local");
-        setCloudReady(false);
-      }
-    }
-
-    startCloudSync();
+    setCloudStatus("multiusuario local");
+    setCloudReady(false);
   }, []);
 
 
   useEffect(() => {
-    if (!cloudReady) return;
-
-    const timeout = window.setTimeout(async () => {
-      try {
-        setCloudStatus("guardando");
-        await saveCloudAlbum({
-          collection,
-          specials,
-          packs,
-          log,
-          undoStack,
-          extraStickers,
-          captureCount
-        });
-        setCloudStatus("sincronizado");
-      } catch (error) {
-        console.error("Firebase save error", error);
-        setCloudStatus("error nube");
-      }
-    }, 700);
-
-    return () => window.clearTimeout(timeout);
-  }, [collection, specials, captureCount, log, undoStack, extraStickers, cloudReady]);
+    setCloudStatus("multiusuario local");
+  }, [familyProfiles]);
 
   const totals = useMemo(() => {
     const normal = Object.values(collection).flat();
@@ -311,12 +470,17 @@ export default function App() {
 
         saveUndoSnapshot("importar respaldo");
 
-        setCollection(data.collection || initialCollection());
-        setSpecials(data.specials || initialSpecials());
-        setCaptureCount(Number(data.captureCount || Number(data.packs || 0) * 7 || 0));
-        setExtraStickers(Array.isArray(data.extraStickers) ? data.extraStickers : []);
-        setLog(Array.isArray(data.log) ? data.log : []);
-        setUndoStack(Array.isArray(data.undoStack) ? data.undoStack : []);
+        if (Array.isArray(data.familyProfiles) && data.familyProfiles.length) {
+          setFamilyProfiles(data.familyProfiles);
+          setActiveProfileId(data.activeProfileId || data.familyProfiles[0].id);
+        } else {
+          setCollection(data.collection || initialCollection());
+          setSpecials(data.specials || initialSpecials());
+          setCaptureCount(Number(data.captureCount || Number(data.packs || 0) * 7 || 0));
+          setExtraStickers(Array.isArray(data.extraStickers) ? data.extraStickers : []);
+          setLog(Array.isArray(data.log) ? data.log : []);
+          setUndoStack(Array.isArray(data.undoStack) ? data.undoStack : []);
+        }
 
         showFeedback("new", "Respaldo importado", "El álbum fue restaurado correctamente");
         addLog("Respaldo importado");
@@ -525,13 +689,16 @@ export default function App() {
         </div>
         <div className="progressCard">
           <span>Avance total</span>
+          <em className="activeProfileMini">{activeProfile.emoji} {activeProfile.name}</em>
           <strong>{totals.progress}%</strong>
           <div className="bar"><div style={{ width: `${totals.progress}%` }} /></div>
           <small>{totals.owned}/{totals.total} estampas</small>
         </div>
       </motion.header>
 
-      <div className={`saveBox cloud ${cloudStatus.replace(" ", "-")}`}>Guardado automático: {cloudStatus}. También hay respaldo local en este dispositivo.</div>
+      <div className="saveBoxMini">
+        <span>{activeProfile.emoji} {activeProfile.name}</span>
+      </div>
 
       <nav className="tabs">
         <button onClick={() => setTab("capture")} className={tab === "capture" ? "active" : ""}><PackageOpen size={17}/> Abrí sobre</button>
@@ -539,20 +706,13 @@ export default function App() {
         <button onClick={() => setTab("stats")} className={tab === "stats" ? "active" : ""}><BarChart3 size={17}/> Numeralia</button>
         <button onClick={() => setTab("duplicates")} className={tab === "duplicates" ? "active" : ""}><Repeat2 size={17}/> Repetidas</button>
         <button onClick={() => setTab("specials")} className={tab === "specials" ? "active" : ""}><Star size={17}/> Especiales</button>
+        <button onClick={() => setTab("family")} className={tab === "family" ? "active" : ""}><Users size={17}/> Familia</button>
         <button onClick={undoLastAction} className="undo">Deshacer</button>
         <button onClick={exportBackup} className="backupBtn"><Download size={17}/> Exportar</button>
         <label className="backupBtn importBtn"><Upload size={17}/> Importar<input type="file" accept="application/json" onChange={importBackup} hidden /></label>
-        <button onClick={async () => {
-          try {
-            setCloudStatus("guardando");
-            await saveCloudAlbum({ collection, specials, packs, captureCount, log, undoStack, extraStickers });
-            setCloudStatus("sincronizado");
-            showFeedback("new", "Nube actualizada", "Avance guardado en Firebase");
-          } catch (error) {
-            setCloudStatus("error nube");
-            showFeedback("error", "Error en nube", "No se pudo guardar en Firebase");
-          }
-        }} className="backupBtn cloudBtn">Guardar nube</button>
+        <button onClick={() => {
+          showFeedback("new", "Multiusuario local", "La nube familiar se activará en v9.2");
+        }} className="backupBtn cloudBtn">Nube familiar</button>
       </nav>
 
       {tab === "capture" && (
@@ -639,8 +799,263 @@ export default function App() {
       {tab === "stats" && <Stats totals={totals} packs={packs}/>}
       {tab === "duplicates" && <Duplicates collection={collection} markTraded={markTraded}/>}
       {tab === "specials" && <Specials specials={specials} setSpecials={setSpecials} removeSpecialCapture={removeSpecialCapture} extraStickers={extraStickers} addExtraSticker={addExtraSticker} removeExtraSticker={removeExtraSticker}/>}
+
+      {tab === "family" && (
+        <div className="familyScreen">
+          <ProfileBar
+            profiles={familyProfiles}
+            activeProfile={activeProfile}
+            setActiveProfileId={setActiveProfileId}
+            createNewFamilyProfile={createNewFamilyProfile}
+            deleteFamilyProfile={deleteFamilyProfile}
+          />
+          <FamilyRanking profiles={familyProfiles} />
+          <ProfileListTools profiles={familyProfiles} />
+        </div>
+      )}
     </div>
   )
+}
+
+function ProfileBar({ profiles, activeProfile, setActiveProfileId, createNewFamilyProfile, deleteFamilyProfile }) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [name, setName] = useState("");
+  const [emoji, setEmoji] = useState("⚽");
+  const [color, setColor] = useState("azul");
+  const [pin, setPin] = useState("2026");
+
+  function handleCreate() {
+    if (!name.trim()) return;
+    createNewFamilyProfile(name, emoji, color, pin);
+    setName("");
+    setEmoji("⚽");
+    setColor("azul");
+    setPin("2026");
+    setShowCreate(false);
+  }
+
+  return (
+    <section className="profileBar card">
+      <div className="profileHeader">
+        <div>
+          <h2><Users/> Familia coleccionista</h2>
+          <p>Perfil activo: <b>{activeProfile.emoji} {activeProfile.name}</b></p>
+        </div>
+        <button onClick={() => setShowCreate(prev => !prev)}><UserPlus size={17}/> Nuevo perfil</button>
+      </div>
+      <div className="profileChips">
+        {profiles.map(profile => {
+          const totals = profileTotals(profile);
+          return (
+            <div key={profile.id} className={profile.id === activeProfile.id ? `profileChipWrapper active ${profile.color}` : `profileChipWrapper ${profile.color}`}>
+              <button className="profileChip" onClick={() => {
+                  if (profile.id === activeProfile.id) return;
+
+                  const entered = window.prompt(`PIN de ${profile.name}`);
+                  if (entered === null) return;
+
+                  if ((profile.pin || "2026") !== entered) {
+                    alert("PIN incorrecto");
+                    return;
+                  }
+
+                  setActiveProfileId(profile.id);
+                }}>
+                <span>{profile.emoji}</span>
+                <strong>{profile.name}</strong>
+                <small>{totals.progress}%</small>
+              </button>
+              <button className="deleteProfileBtn" title="Eliminar perfil" onClick={() => deleteFamilyProfile(profile.id)}>🗑️</button>
+            </div>
+          );
+        })}
+      </div>
+      {showCreate && (
+        <div className="createProfile">
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre del perfil" />
+          <select value={emoji} onChange={e => setEmoji(e.target.value)}>
+            <option value="⚽">⚽</option>
+            <option value="🏆">🏆</option>
+            <option value="⭐">⭐</option>
+            <option value="🔥">🔥</option>
+            <option value="🦁">🦁</option>
+            <option value="👑">👑</option>
+          </select>
+          <select value={color} onChange={e => setColor(e.target.value)}>
+            <option value="azul">Azul</option>
+            <option value="dorado">Dorado</option>
+            <option value="morado">Morado</option>
+            <option value="verde">Verde</option>
+            <option value="rosa">Rosa</option>
+          </select>
+          <input value={pin} maxLength={6} onChange={e => setPin(e.target.value.replace(/\D/g, ""))} placeholder="PIN" />
+          <button onClick={handleCreate}><Lock size={15}/> Crear</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function FamilyRanking({ profiles }) {
+  const ranking = profiles
+    .map(profile => ({ ...profile, totals: profileTotals(profile) }))
+    .sort((a, b) => b.totals.progress - a.totals.progress);
+
+  return (
+    <section className="familyRanking card">
+      <h2><Crown/> Ranking familiar</h2>
+      <div className="familyRows">
+        {ranking.map((profile, index) => (
+          <div key={profile.id} className="familyRow">
+            <b>{index + 1}</b>
+            <span>{profile.emoji}</span>
+            <strong>{profile.name}</strong>
+            <div className="familyProgress"><div style={{ width: `${profile.totals.progress}%` }} /></div>
+            <em>{profile.totals.progress}%</em>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function getTeamGroupName(code) {
+  const group = groups.find(g => g.teams.includes(code));
+  return group ? group.name : "Especiales";
+}
+
+function formatStickerList(profile) {
+  const missingByGroup = {};
+  const duplicatesByGroup = {};
+
+  groups.forEach(group => {
+    missingByGroup[group.name] = [];
+    duplicatesByGroup[group.name] = [];
+  });
+
+  Object.entries(profile.collection || {}).forEach(([code, stickers]) => {
+    const groupName = getTeamGroupName(code);
+
+    stickers.forEach(sticker => {
+      const available = (sticker.duplicates || 0) - (sticker.traded || 0);
+      const label = `${code}${sticker.number}`;
+
+      if (!sticker.owned) missingByGroup[groupName].push(label);
+      if (available > 0) duplicatesByGroup[groupName].push(`${label}${available > 1 ? ` x${available}` : ""}`);
+    });
+  });
+
+  const missingSpecials = [];
+  const duplicateSpecials = [];
+
+  (profile.specials || []).forEach(sticker => {
+    const available = (sticker.duplicates || 0) - (sticker.traded || 0);
+    const label = sticker.label || sticker.id;
+
+    if (!sticker.owned) missingSpecials.push(label);
+    if (available > 0) duplicateSpecials.push(`${label}${available > 1 ? ` x${available}` : ""}`);
+  });
+
+  missingByGroup["Especiales"] = missingSpecials;
+  duplicatesByGroup["Especiales"] = duplicateSpecials;
+
+  return { missingByGroup, duplicatesByGroup };
+}
+
+function renderGroupedList(title, groupedItems) {
+  const lines = [title];
+
+  Object.entries(groupedItems).forEach(([groupName, items]) => {
+    if (!items.length) return;
+    lines.push("");
+    lines.push(groupName);
+    lines.push(items.join(", "));
+  });
+
+  if (lines.length === 1) lines.push("Sin registros");
+
+  return lines.join("\\n");
+}
+
+function buildShareText(profile) {
+  const { missingByGroup, duplicatesByGroup } = formatStickerList(profile);
+  const missingCount = Object.values(missingByGroup).reduce((sum, items) => sum + items.length, 0);
+  const duplicateCount = Object.values(duplicatesByGroup).reduce((sum, items) => sum + items.length, 0);
+
+  return [
+    `Álbum Panini 2026 · ${profile.name}`,
+    "",
+    renderGroupedList(`FALTANTES (${missingCount})`, missingByGroup),
+    "",
+    renderGroupedList(`REPETIDAS DISPONIBLES (${duplicateCount})`, duplicatesByGroup)
+  ].join("\\n");
+}
+
+function ProfileListTools({ profiles }) {
+  const [selectedProfileId, setSelectedProfileId] = useState(profiles[0]?.id || "");
+  const selectedProfile = profiles.find(p => p.id === selectedProfileId) || profiles[0];
+  const text = selectedProfile ? buildShareText(selectedProfile) : "";
+
+  async function copyText() {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("Listado copiado. Ya puedes pegarlo en WhatsApp.");
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      alert("Listado copiado. Ya puedes pegarlo en WhatsApp.");
+    }
+  }
+
+  function openWhatsApp() {
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  }
+
+  function printList() {
+    const win = window.open("", "_blank");
+    win.document.write(`
+      <html>
+        <head>
+          <title>Listado Panini 2026</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 28px; line-height: 1.45; }
+            h1 { margin-bottom: 4px; }
+            pre { white-space: pre-wrap; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <h1>Listado Panini 2026</h1>
+          <pre>${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    win.print();
+  }
+
+  if (!selectedProfile) return null;
+
+  return (
+    <section className="card profileListTools">
+      <h2><ClipboardList/> Listado para WhatsApp / imprimir</h2>
+      <p>Prepara una lista limpia de faltantes y repetidas disponibles por perfil.</p>
+      <div className="listToolsControls">
+        <select value={selectedProfileId} onChange={e => setSelectedProfileId(e.target.value)}>
+          {profiles.map(profile => <option key={profile.id} value={profile.id}>{profile.emoji} {profile.name}</option>)}
+        </select>
+        <button onClick={copyText}><ClipboardList size={16}/> Copiar</button>
+        <button onClick={openWhatsApp}><MessageCircle size={16}/> WhatsApp</button>
+        <button onClick={printList}><Printer size={16}/> Imprimir</button>
+      </div>
+      <textarea value={text} readOnly />
+    </section>
+  );
 }
 
 function TeamDetail({ code, stickers, markOwned, addDuplicate, markTraded, removeNormalCapture }) {
