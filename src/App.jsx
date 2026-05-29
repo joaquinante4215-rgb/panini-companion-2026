@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle, TrendingUp, Target, Wallet, CalendarDays, Medal, Users, UserPlus, Crown, ClipboardList, MessageCircle, Printer, Lock } from "lucide-react";
 import { motion } from "framer-motion";
-import { loadCloudAlbum, saveCloudAlbum } from "./firebase";
+import { loadCloudFamily, saveCloudFamily, subscribeCloudFamily } from "./firebase";
 
 const groups = [
   { name: "Grupo A", teams: ["MEX", "RSA", "KOR", "CZE"] },
@@ -258,6 +258,7 @@ export default function App() {
   const [showLog, setShowLog] = useState(false);
   const [cloudStatus, setCloudStatus] = useState("local");
   const [cloudReady, setCloudReady] = useState(false);
+  const [lastCloudUpdate, setLastCloudUpdate] = useState(null);
 
 
   function updateActiveProfile(updater) {
@@ -364,6 +365,58 @@ export default function App() {
 
   useEffect(() => localStorage.setItem("panini2026_familyProfiles", JSON.stringify(familyProfiles)), [familyProfiles]);
   useEffect(() => localStorage.setItem("panini2026_activeProfileId", activeProfile.id), [activeProfile.id]);
+
+  useEffect(() => {
+    let unsubscribe = null;
+    let cancelled = false;
+
+    async function startCloudSyncSafe() {
+      try {
+        setCloudStatus("revisando nube");
+        const cloudData = await loadCloudFamily();
+
+        if (!cancelled && cloudData?.familyProfiles?.length) {
+          setFamilyProfiles(cloudData.familyProfiles);
+          setActiveProfileId(cloudData.activeProfileId || cloudData.familyProfiles[0].id);
+          localStorage.setItem("panini2026_familyProfiles", JSON.stringify(cloudData.familyProfiles));
+          localStorage.setItem("panini2026_activeProfileId", cloudData.activeProfileId || cloudData.familyProfiles[0].id);
+          setCloudReady(true);
+          setCloudStatus("sincronizado");
+        } else if (!cancelled) {
+          // Importante: NO sembrar nube vacía automáticamente.
+          // Primero el usuario debe importar o validar su respaldo real y presionar Guardar nube.
+          setCloudReady(true);
+          setCloudStatus("nube vacía");
+        }
+
+        unsubscribe = subscribeCloudFamily((cloudSnapshot) => {
+          if (!cloudSnapshot?.familyProfiles?.length) return;
+          setFamilyProfiles(cloudSnapshot.familyProfiles);
+          setActiveProfileId(cloudSnapshot.activeProfileId || cloudSnapshot.familyProfiles[0].id);
+          localStorage.setItem("panini2026_familyProfiles", JSON.stringify(cloudSnapshot.familyProfiles));
+          localStorage.setItem("panini2026_activeProfileId", cloudSnapshot.activeProfileId || cloudSnapshot.familyProfiles[0].id);
+          setCloudStatus("sincronizado");
+          setLastCloudUpdate(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+        }, (error) => {
+          console.error("Cloud realtime error", error);
+          setCloudStatus("modo local");
+        });
+      } catch (error) {
+        console.error("Cloud start error", error);
+        setCloudStatus("modo local");
+        setCloudReady(false);
+      }
+    }
+
+    startCloudSyncSafe();
+
+    return () => {
+      cancelled = true;
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+
 
   useEffect(() => {
     setCloudStatus("multiusuario local");
@@ -742,9 +795,25 @@ export default function App() {
         <button onClick={undoLastAction} className="undo">Deshacer</button>
         <button onClick={exportBackup} className="backupBtn"><Download size={17}/> Exportar</button>
         <label className="backupBtn importBtn"><Upload size={17}/> Importar<input type="file" accept="application/json" onChange={importBackup} hidden /></label>
-        <button onClick={() => {
-          showFeedback("new", "Multiusuario local", "La nube familiar se activará en v9.2");
-        }} className="backupBtn cloudBtn">Nube familiar</button>
+        <button onClick={async () => {
+          try {
+            setCloudStatus("guardando nube");
+            await saveCloudFamily({
+              familyProfiles,
+              activeProfileId: activeProfile.id,
+              schemaVersion: 10.1,
+              updatedFrom: "manual-button",
+              clientUpdatedAt: new Date().toISOString()
+            });
+            setCloudStatus("sincronizado");
+            setLastCloudUpdate(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+            showFeedback("new", "Nube actualizada", "Este avance será la base para todos los dispositivos");
+          } catch (error) {
+            console.error(error);
+            setCloudStatus("error nube");
+            showFeedback("error", "Error en nube", "No se pudo guardar en Firebase");
+          }
+        }} className="backupBtn cloudBtn">Guardar nube</button>
       </nav>
 
       {tab === "capture" && (

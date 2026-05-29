@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAM8_KS-cn8fNQ02vTIjaLc_KmbqIyAYxA",
@@ -11,19 +11,24 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-
 export const db = getFirestore(app);
-export const albumDocRef = doc(db, "albums", "principal");
+export const familyDocRef = doc(db, "families", "valentina-family");
 
-export async function loadCloudAlbum() {
-  const snapshot = await getDoc(albumDocRef);
+export async function loadCloudFamily() {
+  const snapshot = await getDoc(familyDocRef);
   if (!snapshot.exists()) return null;
   return snapshot.data();
 }
 
-export async function saveCloudAlbum(data) {
-  await setDoc(albumDocRef, {
+export async function saveCloudFamily(data) {
+  await setDoc(familyDocRef, {
     ...data,
     updatedAt: serverTimestamp()
   }, { merge: true });
+}
+
+export function subscribeCloudFamily(callback, onError) {
+  return onSnapshot(familyDocRef, snapshot => {
+    callback(snapshot.exists() ? snapshot.data() : null);
+  }, onError);
 }

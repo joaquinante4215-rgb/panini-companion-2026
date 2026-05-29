@@ -212,3 +212,13 @@ Las especiales:
 
 - Se eliminó el badge repetido del perfil activo debajo del recuadro de avance.
 - En Familia Coleccionista ya no se muestra “niña/niño”; solo nombre y avance.
+
+
+## v10.1 - Cloud Sync seguro
+
+- Se restaura la arquitectura completa de v9.4.
+- Se mantiene Exportar / Importar.
+- La nube ya NO se siembra vacía automáticamente.
+- Si Firestore está vacío, la app muestra "nube vacía" y espera a que importes/valides el avance real.
+- El botón "Guardar nube" sube manualmente el avance actual como fuente oficial.
+- Listener en tiempo real para que otros dispositivos reciban cambios.
