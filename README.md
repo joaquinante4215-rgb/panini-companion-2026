@@ -282,3 +282,12 @@ Las especiales:
 - Cada tarjeta muestra avatar, nombre, personaje, avance, barra de progreso, estampas obtenidas e insignia activa.
 - Se agregan temas visuales por personaje.
 - No se modifica Firebase, ranking, listados, importar/exportar ni nube.
+
+
+## v12.3 - Avatar assets reales
+
+- Se cambia la estrategia de avatares: ahora son imágenes reales en `src/assets/avatars/`.
+- La app carga el avatar según el tipo de personaje.
+- Se incluye primer set de avatares recortados del mockup aprobado para validar la arquitectura.
+- Siguientes pasos: sustituir estos assets por ilustraciones finales individuales.
+- No se toca Firebase, nube, import/export, ranking ni listados.

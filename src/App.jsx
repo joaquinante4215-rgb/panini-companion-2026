@@ -3,6 +3,13 @@ import React, {useEffect, useMemo, useState } from "react";
 import {Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle, TrendingUp, Target, Wallet, CalendarDays, Medal, Users, UserPlus, Crown, ClipboardList, MessageCircle, Printer} from "lucide-react";
 import {motion } from "framer-motion";
 import {loadCloudFamily, saveCloudFamily, subscribeCloudFamily } from "./firebase";
+import avatarGoleadora from "./assets/avatars/goleadora-estrella.png";
+import avatarPortero from "./assets/avatars/portero-imbatible.png";
+import avatarCapitana from "./assets/avatars/la-capitana.png";
+import avatarFichaje from "./assets/avatars/fichaje-mas-caro.png";
+import avatarGalacticos from "./assets/avatars/los-galacticos.png";
+import avatarDupla from "./assets/avatars/dupla-del-gol.png";
+import avatarDuenas from "./assets/avatars/duenas-de-la-cancha.png";
 
 const groups = [
   {name: "Grupo A", teams: ["MEX", "RSA", "KOR", "CZE"] },
@@ -1045,6 +1052,39 @@ function getProfileStickerCount(profile) {
   return [...normal, ...specials].filter(sticker => sticker.owned).length;
 }
 
+
+const avatarImageMap = {
+  goleadora_estrella: avatarGoleadora,
+  portero_imbatible: avatarPortero,
+  la_capitana: avatarCapitana,
+  fichaje_mas_caro: avatarFichaje,
+  los_galacticos: avatarGalacticos,
+  dupla_del_gol: avatarDupla,
+  duenas_de_la_cancha: avatarDuenas
+};
+
+function getAvatarImage(profile) {
+  const character = getProfileCharacter(profile);
+  const id = character?.typeId || character?.id || profile?.character || "";
+  if (id.includes("goleadora")) return avatarGoleadora;
+  if (id.includes("portero")) return avatarPortero;
+  if (id.includes("capitana")) return avatarCapitana;
+  if (id.includes("fichaje")) return avatarFichaje;
+  if (id.includes("galacticos")) return avatarGalacticos;
+  if (id.includes("dupla")) return avatarDupla;
+  if (id.includes("duenas")) return avatarDuenas;
+  return avatarGoleadora;
+}
+
+function PremiumAvatarImage({ profile }) {
+  return (
+    <div className="premiumAvatarImageWrap">
+      <img className="premiumAvatarImage" src={getAvatarImage(profile)} alt={getProfileCharacter(profile).title} />
+    </div>
+  );
+}
+
+
 function ProfileBar({profiles, activeProfile, setActiveProfileId, createNewFamilyProfile, deleteFamilyProfile }) {
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
@@ -1104,7 +1144,7 @@ function ProfileBar({profiles, activeProfile, setActiveProfileId, createNewFamil
 
                   setActiveProfileId(profile.id);
                 }}>
-                <div className="collectorAvatar">{getProfileCharacter(profile).emoji}</div>
+                <div className="collectorAvatar"><PremiumAvatarImage profile={profile} /></div>
                 <div className="collectorName">{profile.name}</div>
                 <div className="collectorRole">{getProfileCharacter(profile).title}</div>
                 <div className="collectorProgressNumber">{totals.progress}%</div>
