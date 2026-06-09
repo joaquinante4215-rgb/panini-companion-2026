@@ -291,3 +291,22 @@ Las especiales:
 - Se incluye primer set de avatares recortados del mockup aprobado para validar la arquitectura.
 - Siguientes pasos: sustituir estos assets por ilustraciones finales individuales.
 - No se toca Firebase, nube, import/export, ranking ni listados.
+
+
+## v12.4 - Pair avatar fix
+
+- Corrige avatares de pareja:
+  - Los Galácticos = hombre-hombre
+  - La Dupla del Gol = hombre-mujer
+  - Las Dueñas de la Cancha = mujer-mujer
+- Se reemplazan los assets duplicados que causaban que todas las parejas se vieran como dos hombres.
+- No se modifica Firebase, nube, ranking, listados ni lógica de avance.
+
+
+## v12.5 - Pair assets final
+
+- Corrige definitivamente los assets de pareja:
+  - La Dupla del Gol: hombre-mujer, en el mismo contexto, interactuando.
+  - Las Dueñas de la Cancha: mujer-mujer, en el mismo contexto, interactuando.
+- Ya no se usan copias superpuestas de personajes individuales.
+- No se modifica Firebase, nube, avance, ranking, listados ni import/export.
