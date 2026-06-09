@@ -222,3 +222,63 @@ Las especiales:
 - Si Firestore está vacío, la app muestra "nube vacía" y espera a que importes/valides el avance real.
 - El botón "Guardar nube" sube manualmente el avance actual como fuente oficial.
 - Listener en tiempo real para que otros dispositivos reciban cambios.
+
+
+## v11.2 safe - Custom Collector
+
+- Valentina conserva Goleadora Estrella.
+- Nuevos coleccionistas crean personaje personalizado:
+  - avatar emoji
+  - nombre del personaje
+  - frase
+- Sin tocar Firebase.
+- Corrección construida desde la versión estable para evitar errores de parseo.
+
+
+## v11.3 - Fix creación de coleccionista
+
+- Se elimina el campo “Nombre del personaje”.
+- El nombre del perfil también define el personaje.
+- La app propone automáticamente una frase futbolera mundialista según el nombre.
+- Nombre del perfil y PIN quedan dentro de “Crea tu personaje”.
+- El PIN ya no aparece por default y se captura como password.
+- Se corrige la pantalla negra al crear nuevo coleccionista.
+
+
+## v11.3.1 - JSX fix
+
+- Corrige el botón Crear que causaba error de parseo.
+- Mantiene las mejoras de creación de coleccionista.
+
+
+## v11.3.2 - Runtime fix
+
+- Corrige pantalla negra al presionar Crear.
+- Elimina referencias antiguas a `emoji` y `avatarType`.
+- Nuevo coleccionista se crea con álbum en 0%.
+- Mantiene nombre, PIN, avatar emoji y frase sugerida.
+
+
+## v11.4 - Selección de personaje
+
+- Nuevo coleccionista pide:
+  - Nombre del coleccionista
+  - Selección de personaje en lista desplegable
+  - PIN
+  - Frase mundialista
+- Se elimina el campo de imagen/avatar emoji.
+- La selección de personaje guarda tipo/género para futuros avatares.
+
+
+## v11.4.1 - Div fix
+
+- Corrige el bloque JSX de creación de coleccionista.
+- Elimina etiqueta `div` extra antes del botón Crear.
+
+
+## v12.0 - Family Premium Cards
+
+- Familia Coleccionista ahora usa tarjetas visuales premium.
+- Cada tarjeta muestra avatar, nombre, personaje, avance, barra de progreso, estampas obtenidas e insignia activa.
+- Se agregan temas visuales por personaje.
+- No se modifica Firebase, ranking, listados, importar/exportar ni nube.

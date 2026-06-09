@@ -1,22 +1,22 @@
 
-import React, { useEffect, useMemo, useState } from "react";
-import { Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle, TrendingUp, Target, Wallet, CalendarDays, Medal, Users, UserPlus, Crown, ClipboardList, MessageCircle, Printer, Lock } from "lucide-react";
-import { motion } from "framer-motion";
-import { loadCloudFamily, saveCloudFamily, subscribeCloudFamily } from "./firebase";
+import React, {useEffect, useMemo, useState } from "react";
+import {Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle, TrendingUp, Target, Wallet, CalendarDays, Medal, Users, UserPlus, Crown, ClipboardList, MessageCircle, Printer} from "lucide-react";
+import {motion } from "framer-motion";
+import {loadCloudFamily, saveCloudFamily, subscribeCloudFamily } from "./firebase";
 
 const groups = [
-  { name: "Grupo A", teams: ["MEX", "RSA", "KOR", "CZE"] },
-  { name: "Grupo B", teams: ["CAN", "BIH", "QAT", "SUI"] },
-  { name: "Grupo C", teams: ["BRA", "MAR", "HAI", "SCO"] },
-  { name: "Grupo D", teams: ["USA", "PAR", "AUS", "TUR"] },
-  { name: "Grupo E", teams: ["GER", "CUW", "CIV", "ECU"] },
-  { name: "Grupo F", teams: ["NED", "JPN", "SWE", "TUN"] },
-  { name: "Grupo G", teams: ["BEL", "EGY", "IRN", "NZL"] },
-  { name: "Grupo H", teams: ["ESP", "CPV", "KSA", "URU"] },
-  { name: "Grupo I", teams: ["FRA", "SEN", "IRQ", "NOR"] },
-  { name: "Grupo J", teams: ["ARG", "ALG", "AUT", "JOR"] },
-  { name: "Grupo K", teams: ["POR", "COD", "UZB", "COL"] },
-  { name: "Grupo L", teams: ["ENG", "CRO", "GHA", "PAN"] },
+  {name: "Grupo A", teams: ["MEX", "RSA", "KOR", "CZE"] },
+  {name: "Grupo B", teams: ["CAN", "BIH", "QAT", "SUI"] },
+  {name: "Grupo C", teams: ["BRA", "MAR", "HAI", "SCO"] },
+  {name: "Grupo D", teams: ["USA", "PAR", "AUS", "TUR"] },
+  {name: "Grupo E", teams: ["GER", "CUW", "CIV", "ECU"] },
+  {name: "Grupo F", teams: ["NED", "JPN", "SWE", "TUN"] },
+  {name: "Grupo G", teams: ["BEL", "EGY", "IRN", "NZL"] },
+  {name: "Grupo H", teams: ["ESP", "CPV", "KSA", "URU"] },
+  {name: "Grupo I", teams: ["FRA", "SEN", "IRQ", "NOR"] },
+  {name: "Grupo J", teams: ["ARG", "ALG", "AUT", "JOR"] },
+  {name: "Grupo K", teams: ["POR", "COD", "UZB", "COL"] },
+  {name: "Grupo L", teams: ["ENG", "CRO", "GHA", "PAN"] },
 ];
 
 const countryNames = {
@@ -57,18 +57,18 @@ function initialCollection() {
   groups.flatMap(g => g.teams).forEach(code => {
     const missing = new Set(missingByTeam[code] || []);
     const dupes = duplicateByTeam[code] || {};
-    data[code] = Array.from({ length: 20 }, (_, i) => {
+    data[code] = Array.from({length: 20 }, (_, i) => {
       const number = i + 1;
-      return { number, owned: !missing.has(number), duplicates: Number(dupes[String(number)] || 0), traded: 0 };
+      return {number, owned: !missing.has(number), duplicates: Number(dupes[String(number)] || 0), traded: 0 };
     });
   });
   return data;
 }
 
 function initialSpecials() {
-  const panini = [{ id: "PANINI00", group: "Panini", code: "PAN", number: "00", label: "Panini 00" }];
+  const panini = [{id: "PANINI00", group: "Panini", code: "PAN", number: "00", label: "Panini 00" }];
 
-  const fwc = Array.from({ length: 19 }, (_, i) => ({
+  const fwc = Array.from({length: 19 }, (_, i) => ({
     id: `FWC${i + 1}`,
     group: "FWC",
     code: "FWC",
@@ -76,7 +76,7 @@ function initialSpecials() {
     label: `FWC ${i + 1}`
   }));
 
-  const cocaCola = Array.from({ length: 14 }, (_, i) => ({
+  const cocaCola = Array.from({length: 14 }, (_, i) => ({
     id: `CC${i + 1}`,
     group: "Coca Cola",
     code: "CC",
@@ -100,6 +100,92 @@ function safeLoad(key, fallback) {
     return fallback;
   }
 }
+
+
+const founderCharacter = {
+  id: "goleadora_estrella",
+  emoji: "👧",
+  title: "Goleadora Estrella",
+  description: "Siempre encuentra la portería.",
+  defaultColor: "rosa"
+};
+
+function getProfileCharacter(profile) {
+  if (!profile) return founderCharacter;
+
+  if ((profile.name || "").toLowerCase().includes("valentina")) {
+    return {
+      ...founderCharacter,
+      ...profile.customCharacter,
+      id: "goleadora_estrella",
+      emoji: profile.customCharacter?.emoji || "👧",
+      title: profile.customCharacter?.title || "Goleadora Estrella",
+      description: profile.customCharacter?.description || "Siempre encuentra la portería."
+    };
+  }
+
+  return profile.customCharacter || {
+    id: profile.character || `custom_${profile.id || "collector"}`,
+    emoji: profile.emoji || "⭐",
+    title: "Nuevo Coleccionista",
+    description: "Listo para llenar el álbum.",
+    defaultColor: profile.color || "dorado"
+  };
+}
+
+function normalizeProfileCharacter(profile) {
+  const character = getProfileCharacter(profile);
+  return {
+    ...profile,
+    character: character.id || profile.character || `custom_${profile.id || "collector"}`,
+    customCharacter: character,
+    emoji: character.emoji,
+    color: profile.color || character.defaultColor || "dorado"
+  };
+}
+
+
+
+function suggestFootballPhrase(name) {
+  const base = (name || "").trim() || "Este coleccionista";
+  const phrases = [
+    `${base} juega cada sobre como una final mundialista.`,
+    `${base} tiene olfato de gol para encontrar faltantes.`,
+    `${base} domina la cancha de las repetidas.`,
+    `${base} va por la copa, estampa por estampa.`,
+    `${base} colecciona con garra de campeón.`,
+    `${base} siempre aparece en el minuto decisivo.`
+  ];
+  let score = 0;
+  for (const char of base) score += char.charCodeAt(0);
+  return phrases[score % phrases.length];
+}
+
+function emojiForName(name) {
+  const base = (name || "").trim();
+  if (!base) return "⭐";
+  const emojis = ["⚽", "🏆", "⭐", "🔥", "🚀", "👑", "🎯", "🥇", "😎", "🦁"];
+  let score = 0;
+  for (const char of base) score += char.charCodeAt(0);
+  return emojis[score % emojis.length];
+}
+
+
+
+const characterTypes = [
+  { id: "goleadora_estrella", title: "Goleadora Estrella", gender: "mujer", emoji: "👧", defaultPhrase: "Siempre encuentra la portería." },
+  { id: "portero_imbatible", title: "Portero Imbatible", gender: "hombre", emoji: "👦", defaultPhrase: "Nada pasa la línea." },
+  { id: "la_capitana", title: "La Capitana", gender: "mujer", emoji: "👩", defaultPhrase: "Dirige al equipo al campeonato." },
+  { id: "fichaje_mas_caro", title: "El Fichaje Más Caro", gender: "hombre", emoji: "👨", defaultPhrase: "El jugador más cotizado del mercado." },
+  { id: "los_galacticos", title: "Los Galácticos", gender: "pareja_hombre_hombre", emoji: "👨‍👨", defaultPhrase: "Juntos son imparables." },
+  { id: "dupla_del_gol", title: "La Dupla del Gol", gender: "pareja_hombre_mujer", emoji: "👨‍👩", defaultPhrase: "Dos talentos, un mismo objetivo." },
+  { id: "duenas_de_la_cancha", title: "Las Dueñas de la Cancha", gender: "pareja_mujer_mujer", emoji: "👩‍👩", defaultPhrase: "Control absoluto del partido." }
+];
+
+function getCharacterType(typeId) {
+  return characterTypes.find(type => type.id === typeId) || characterTypes[0];
+}
+
 
 function slugifyProfileName(name) {
   return name
@@ -153,8 +239,9 @@ function createProfileFromLegacy(name, legacy) {
   return {
     id: slugifyProfileName(name),
     name,
-    emoji: "⚽",
-    avatarType: "girl",
+    emoji: "👧",
+    character: "goleadora_estrella",
+    customCharacter: founderCharacter,
     color: "rosa",
     pin: "2026",
     collection: legacy.collection,
@@ -227,11 +314,11 @@ export default function App() {
         const index = savedFamily.findIndex(p => p.id === "valentina" || p.name === "Valentina" || p.name === "Joaquín");
         if (index >= 0 && shouldUpgradeValentinaProfile(savedFamily[index], legacyCollection, legacySpecials)) {
           const migrated = [...savedFamily];
-          migrated[index] = { ...legacyProfile, id: savedFamily[index].id, name: "Valentina" };
+          migrated[index] = {...legacyProfile, id: savedFamily[index].id, name: "Valentina" };
           return migrated;
         }
       }
-      return savedFamily.map(p => p.name === "Joaquín" ? { ...p, name: "Valentina", id: p.id === "joaquin" ? "valentina" : p.id } : p);
+      return savedFamily.map(p => p.name === "Joaquín" ? {...p, name: "Valentina", id: p.id === "joaquin" ? "valentina" : p.id } : p);
     }
 
     if (legacyProfile) return [legacyProfile];
@@ -264,7 +351,7 @@ export default function App() {
   function updateActiveProfile(updater) {
     setFamilyProfiles(prev => prev.map(profile => {
       if (profile.id !== activeProfile.id) return profile;
-      return typeof updater === "function" ? updater(profile) : { ...profile, ...updater };
+      return typeof updater === "function" ? updater(profile) : {...profile, ...updater };
     }));
   }
 
@@ -310,29 +397,49 @@ export default function App() {
     }));
   }
 
-  function createNewFamilyProfile(name, emoji = "⚽", avatarType = "girl", pin = "2026") {
+  function createNewFamilyProfile(name, customCharacter = null, pin = "") {
     const cleanName = name.trim();
     if (!cleanName) return;
-    const newProfile = createEmptyProfile(cleanName, emoji, avatarType);
+
+    const safeCharacter = customCharacter || {
+      emoji: emojiForName(cleanName),
+      title: cleanName,
+      description: suggestFootballPhrase(cleanName),
+      defaultColor: "dorado"
+    };
+
     setFamilyProfiles(prev => {
+      const baseId = slugifyProfileName(cleanName);
       const existingIds = new Set(prev.map(p => p.id));
-      let id = newProfile.id;
+      let id = baseId;
       let counter = 2;
+
       while (existingIds.has(id)) {
-        id = `${newProfile.id}-${counter}`;
+        id = `${baseId}-${counter}`;
         counter += 1;
       }
+
       const finalProfile = {
-        ...createEmptyProfile(cleanName, emoji, avatarType),
+        ...createEmptyProfile(cleanName, safeCharacter.emoji || "⭐", "dorado"),
         id,
-        avatarType,
-        color: avatarType === "girl" ? "rosa" : "azul",
+        character: `custom_${id}`,
+        customCharacter: {
+          ...safeCharacter,
+          id: `custom_${id}`,
+          title: safeCharacter.title || cleanName,
+          description: safeCharacter.description || suggestFootballPhrase(cleanName),
+          emoji: safeCharacter.emoji || emojiForName(cleanName),
+          defaultColor: "dorado"
+        },
+        emoji: safeCharacter.emoji || emojiForName(cleanName),
+        color: "dorado",
         pin,
         captureCount: 0,
         extraStickers: [],
         log: [{ text: `Perfil creado: ${cleanName}`, time: "Perfil" }],
         undoStack: []
       };
+
       setActiveProfileId(finalProfile.id);
       showFeedback("new", "Perfil creado", `${cleanName} inicia en 0%`);
       return [...prev, finalProfile];
@@ -376,7 +483,7 @@ export default function App() {
         const cloudData = await loadCloudFamily();
 
         if (!cancelled && cloudData?.familyProfiles?.length) {
-          setFamilyProfiles(cloudData.familyProfiles);
+          setFamilyProfiles(cloudData.familyProfiles.map(normalizeProfileCharacter));
           setActiveProfileId(cloudData.activeProfileId || cloudData.familyProfiles[0].id);
           localStorage.setItem("panini2026_familyProfiles", JSON.stringify(cloudData.familyProfiles));
           localStorage.setItem("panini2026_activeProfileId", cloudData.activeProfileId || cloudData.familyProfiles[0].id);
@@ -391,12 +498,12 @@ export default function App() {
 
         unsubscribe = subscribeCloudFamily((cloudSnapshot) => {
           if (!cloudSnapshot?.familyProfiles?.length) return;
-          setFamilyProfiles(cloudSnapshot.familyProfiles);
+          setFamilyProfiles(cloudSnapshot.familyProfiles.map(normalizeProfileCharacter));
           setActiveProfileId(cloudSnapshot.activeProfileId || cloudSnapshot.familyProfiles[0].id);
           localStorage.setItem("panini2026_familyProfiles", JSON.stringify(cloudSnapshot.familyProfiles));
           localStorage.setItem("panini2026_activeProfileId", cloudSnapshot.activeProfileId || cloudSnapshot.familyProfiles[0].id);
           setCloudStatus("sincronizado");
-          setLastCloudUpdate(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+          setLastCloudUpdate(new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }));
         }, (error) => {
           console.error("Cloud realtime error", error);
           setCloudStatus("modo local");
@@ -462,16 +569,16 @@ export default function App() {
     const estimatedCostRemaining = estimatedPacks * 21;
     const albumIntensity = progress >= 90 ? "Recta final" : progress >= 70 ? "Etapa difícil" : progress >= 40 ? "Buen ritmo" : "Arranque";
 
-    return { total, owned, missing, dupes, traded, availableDupes, normalOwned, specialOwned, progress, nextNewProbability, estimatedPacks, completionByTeam, completedTeams, almostTeams, weakestTeams, strongestTeams, usefulRate, duplicateRate, expectedUsefulPerPack, recommendedMode, estimatedCostRemaining, albumIntensity };
+    return {total, owned, missing, dupes, traded, availableDupes, normalOwned, specialOwned, progress, nextNewProbability, estimatedPacks, completionByTeam, completedTeams, almostTeams, weakestTeams, strongestTeams, usefulRate, duplicateRate, expectedUsefulPerPack, recommendedMode, estimatedCostRemaining, albumIntensity };
   }, [collection, specials]);
 
   function addLog(text) {
     const now = new Date();
-    setLog(prev => [{ text, time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }, ...prev].slice(0, 30));
+    setLog(prev => [{text, time: now.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }) }, ...prev].slice(0, 30));
   }
 
   function showFeedback(type, title, detail) {
-    setCaptureFeedback({ type, title, detail });
+    setCaptureFeedback({type, title, detail });
     window.setTimeout(() => setCaptureFeedback(null), 1800);
   }
 
@@ -506,7 +613,7 @@ export default function App() {
     setSpecials(last.specials);
     setCaptureCount(Number(last.captureCount || Number(last.packs || 0) * 7 || 0));
     setExtraStickers(Array.isArray(last.extraStickers) ? last.extraStickers : extraStickers);
-    setLog([{ text: `Deshacer: ${last.label}`, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }, ...last.log].slice(0, 30));
+    setLog([{text: `Deshacer: ${last.label}`, time: new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }) }, ...last.log].slice(0, 30));
     setUndoStack(prev => prev.slice(1));
   }
 
@@ -560,7 +667,7 @@ export default function App() {
         saveUndoSnapshot("importar respaldo");
 
         if (Array.isArray(data.familyProfiles) && data.familyProfiles.length) {
-          setFamilyProfiles(data.familyProfiles);
+          setFamilyProfiles(data.familyProfiles.map(normalizeProfileCharacter));
           setActiveProfileId(data.activeProfileId || data.familyProfiles[0].id);
         } else {
           setCollection(data.collection || initialCollection());
@@ -587,19 +694,19 @@ export default function App() {
   function markOwned(code, n) {
     saveUndoSnapshot(`${code}${n}: marcar como conseguida`);
     const wasMissing = collection?.[code]?.find(s => s.number === n && !s.owned);
-    setCollection(prev => ({ ...prev, [code]: prev[code].map(s => s.number === n ? { ...s, owned: true } : s) }));
+    setCollection(prev => ({...prev, [code]: prev[code].map(s => s.number === n ? {...s, owned: true } : s) }));
     addLog(`${code}${n}: ${wasMissing ? "nueva conseguida" : "ya estaba conseguida"}`);
   }
 
   function addDuplicate(code, n) {
     saveUndoSnapshot(`${code}${n}: agregar repetida`);
-    setCollection(prev => ({ ...prev, [code]: prev[code].map(s => s.number === n ? { ...s, owned: true, duplicates: s.duplicates + 1 } : s) }));
+    setCollection(prev => ({...prev, [code]: prev[code].map(s => s.number === n ? {...s, owned: true, duplicates: s.duplicates + 1 } : s) }));
     addLog(`${code}${n}: repetida agregada`);
   }
 
   function markTraded(code, n) {
     saveUndoSnapshot(`${code}${n}: marcar cambiada`);
-    setCollection(prev => ({ ...prev, [code]: prev[code].map(s => s.number === n && s.traded < s.duplicates ? { ...s, traded: s.traded + 1 } : s) }));
+    setCollection(prev => ({...prev, [code]: prev[code].map(s => s.number === n && s.traded < s.duplicates ? {...s, traded: s.traded + 1 } : s) }));
     addLog(`${code}${n}: marcada como cambiada`);
   }
 
@@ -613,8 +720,8 @@ export default function App() {
       ...prev,
       [code]: prev[code].map(s => {
         if (s.number !== n) return s;
-        if (s.duplicates > s.traded) return { ...s, duplicates: s.duplicates - 1 };
-        if (s.owned) return { ...s, owned: false };
+        if (s.duplicates > s.traded) return {...s, duplicates: s.duplicates - 1 };
+        if (s.owned) return {...s, owned: false };
         return s;
       })
     }));
@@ -637,8 +744,8 @@ export default function App() {
 
     setSpecials(prev => prev.map(item => {
       if (item.id !== specialId) return item;
-      if (item.owned) return { ...item, duplicates: item.duplicates + 1 };
-      return { ...item, owned: true };
+      if (item.owned) return {...item, duplicates: item.duplicates + 1 };
+      return {...item, owned: true };
     }));
 
     if (special.owned) {
@@ -660,8 +767,8 @@ export default function App() {
 
     setSpecials(prev => prev.map(item => {
       if (item.id !== id) return item;
-      if (item.duplicates > item.traded) return { ...item, duplicates: item.duplicates - 1 };
-      if (item.owned) return { ...item, owned: false };
+      if (item.duplicates > item.traded) return {...item, duplicates: item.duplicates - 1 };
+      if (item.owned) return {...item, owned: false };
       return item;
     }));
 
@@ -770,7 +877,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="hero">
+      <motion.header initial={{opacity: 0, y: -12 }} animate={{opacity: 1, y: 0 }} className="hero">
         <div>
           <div className="eyebrow"><Trophy size={18}/> Panini Companion 2026</div>
           <h1>Mi Álbum del Mundial</h1>
@@ -780,7 +887,7 @@ export default function App() {
           <span>Avance total</span>
           <em className="activeProfileMini">{activeProfile.emoji} {activeProfile.name}</em>
           <strong>{totals.progress}%</strong>
-          <div className="bar"><div style={{ width: `${totals.progress}%` }} /></div>
+          <div className="bar"><div style={{width: `${totals.progress}%` }} /></div>
           <small>{totals.owned}/{totals.total} estampas</small>
         </div>
       </motion.header>
@@ -806,7 +913,7 @@ export default function App() {
               clientUpdatedAt: new Date().toISOString()
             });
             setCloudStatus("sincronizado");
-            setLastCloudUpdate(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+            setLastCloudUpdate(new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }));
             showFeedback("new", "Nube actualizada", "Este avance será la base para todos los dispositivos");
           } catch (error) {
             console.error(error);
@@ -918,20 +1025,55 @@ export default function App() {
   )
 }
 
-function ProfileBar({ profiles, activeProfile, setActiveProfileId, createNewFamilyProfile, deleteFamilyProfile }) {
+
+function getCharacterTheme(profile) {
+  const character = getProfileCharacter(profile);
+  const id = character?.typeId || character?.id || profile?.character || "default";
+  if (id.includes("goleadora")) return "theme-goleadora";
+  if (id.includes("portero")) return "theme-portero";
+  if (id.includes("capitana")) return "theme-capitana";
+  if (id.includes("fichaje")) return "theme-fichaje";
+  if (id.includes("galacticos")) return "theme-galacticos";
+  if (id.includes("dupla")) return "theme-dupla";
+  if (id.includes("duenas")) return "theme-duenas";
+  return "theme-custom";
+}
+
+function getProfileStickerCount(profile) {
+  const normal = Object.values(profile.collection || {}).flat();
+  const specials = profile.specials || [];
+  return [...normal, ...specials].filter(sticker => sticker.owned).length;
+}
+
+function ProfileBar({profiles, activeProfile, setActiveProfileId, createNewFamilyProfile, deleteFamilyProfile }) {
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
-  const [emoji, setEmoji] = useState("⚽");
-  const [avatarType, setAvatarType] = useState("girl");
-  const [pin, setPin] = useState("2026");
+  const [selectedCharacterType, setSelectedCharacterType] = useState("portero_imbatible");
+  const [customPhrase, setCustomPhrase] = useState("");
+  const [pin, setPin] = useState("");
 
   function handleCreate() {
     if (!name.trim()) return;
-    createNewFamilyProfile(name, emoji, avatarType, pin);
+    if (!pin.trim()) {
+      alert("Por favor asigna un PIN para este coleccionista.");
+      return;
+    }
+
+    const selectedType = getCharacterType(selectedCharacterType);
+
+    createNewFamilyProfile(name, {
+      id: selectedType.id,
+      typeId: selectedType.id,
+      gender: selectedType.gender,
+      emoji: selectedType.emoji,
+      title: selectedType.title,
+      description: customPhrase.trim() || selectedType.defaultPhrase || suggestFootballPhrase(name),
+      defaultColor: "dorado"
+    }, pin);
     setName("");
-    setEmoji("⚽");
-    setAvatarType("girl");
-    setPin("2026");
+    setSelectedCharacterType("portero_imbatible");
+    setCustomPhrase("");
+    setPin("");
     setShowCreate(false);
   }
 
@@ -942,14 +1084,14 @@ function ProfileBar({ profiles, activeProfile, setActiveProfileId, createNewFami
           <h2><Users/> Familia coleccionista</h2>
           <p>Perfil activo: <b>{activeProfile.emoji} {activeProfile.name}</b></p>
         </div>
-        <button onClick={() => setShowCreate(prev => !prev)}><UserPlus size={17}/> Nuevo perfil</button>
+        <button onClick={() => setShowCreate(prev => !prev)}><UserPlus size={17}/> Nuevo coleccionista</button>
       </div>
       <div className="profileChips">
         {profiles.map(profile => {
           const totals = profileTotals(profile);
           return (
-            <div key={profile.id} className={profile.id === activeProfile.id ? `profileChipWrapper active ${profile.color}` : `profileChipWrapper ${profile.color}`}>
-              <button className="profileChip" onClick={() => {
+            <div key={profile.id} className={profile.id === activeProfile.id ? `collectorCard active ${getCharacterTheme(profile)}` : `collectorCard ${getCharacterTheme(profile)}`}>
+              <button className="collectorCardMain" onClick={() => {
                   if (profile.id === activeProfile.id) return;
 
                   const entered = window.prompt(`PIN de ${profile.name}`);
@@ -962,41 +1104,58 @@ function ProfileBar({ profiles, activeProfile, setActiveProfileId, createNewFami
 
                   setActiveProfileId(profile.id);
                 }}>
-                <span>{profile.emoji}</span>
-                <strong>{profile.name}</strong>
-                <small>{totals.progress}%</small>
+                <div className="collectorAvatar">{getProfileCharacter(profile).emoji}</div>
+                <div className="collectorName">{profile.name}</div>
+                <div className="collectorRole">{getProfileCharacter(profile).title}</div>
+                <div className="collectorProgressNumber">{totals.progress}%</div>
+                <div className="collectorProgressBar">
+                  <span style={{ width: `${Math.min(100, totals.progress)}%` }} />
+                </div>
+                <div className="collectorStickerCount">{getProfileStickerCount(profile)} / {totals.total} estampas</div>
+                {profile.id === activeProfile.id && <div className="collectorBadge">🏆 Activo</div>}
               </button>
-              <button className="deleteProfileBtn" title="Eliminar perfil" onClick={() => deleteFamilyProfile(profile.id)}>🗑️</button>
+              <button className="deleteProfileBtn premiumDelete" title="Eliminar perfil" onClick={() => deleteFamilyProfile(profile.id)}>🗑️</button>
             </div>
           );
         })}
       </div>
       {showCreate && (
         <div className="createProfile">
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre del perfil" />
-          <select value={emoji} onChange={e => setEmoji(e.target.value)}>
-            <option value="⚽">⚽</option>
-            <option value="🏆">🏆</option>
-            <option value="⭐">⭐</option>
-            <option value="🔥">🔥</option>
-            <option value="🦁">🦁</option>
-            <option value="👑">👑</option>
-          </select>
-          <select value={avatarType} onChange={e => setAvatarType(e.target.value)} title="¿Quién colecciona?">
-            <option value="girl">👧 Goleadora Estrella</option>
-            <option value="boy">👦 Portero Imbatible</option>
-          </select>
-          <input value={pin} maxLength={6} onChange={e => setPin(e.target.value.replace(/\D/g, ""))} placeholder="PIN" />
-          <button onClick={handleCreate}><Lock size={15}/> Crear</button>
+          <div className="customCharacterBuilder">
+            <h3>⚽ Crea tu personaje</h3>
+            <p>Selecciona el tipo de personaje; esto nos ayudará después a asignar el avatar correcto.</p>
+            <div className="customCharacterFields characterDropdownFields">
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre del coleccionista" />
+              <select value={selectedCharacterType} onChange={e => {
+                const nextType = getCharacterType(e.target.value);
+                setSelectedCharacterType(e.target.value);
+                if (!customPhrase.trim()) setCustomPhrase(nextType.defaultPhrase);
+              }}>
+                {characterTypes.map(type => (
+                  <option key={type.id} value={type.id}>{type.emoji} {type.title}</option>
+                ))}
+              </select>
+              <input value={pin} maxLength={6} type="password" inputMode="numeric" onChange={e => setPin(e.target.value.replace(/\\D/g, ""))} placeholder="PIN" />
+              <input value={customPhrase} onChange={e => setCustomPhrase(e.target.value)} placeholder="Frase mundialista" />
+            </div>
+            <div className="customCharacterPreview">
+              <span>{getCharacterType(selectedCharacterType).emoji}</span>
+              <div>
+                <strong>{name || "Nuevo coleccionista"}</strong>
+                <small>{getCharacterType(selectedCharacterType).title} · {customPhrase || getCharacterType(selectedCharacterType).defaultPhrase}</small>
+              </div>
+            </div>
+          </div>
+          <button onClick={handleCreate}>Crear</button>
         </div>
       )}
     </section>
   );
 }
 
-function FamilyRanking({ profiles }) {
+function FamilyRanking({profiles }) {
   const ranking = profiles
-    .map(profile => ({ ...profile, totals: profileTotals(profile) }))
+    .map(profile => ({...profile, totals: profileTotals(profile) }))
     .sort((a, b) => b.totals.progress - a.totals.progress);
 
   return (
@@ -1007,8 +1166,8 @@ function FamilyRanking({ profiles }) {
           <div key={profile.id} className="familyRow">
             <b>{index + 1}</b>
             <span>{profile.emoji}</span>
-            <strong>{profile.name}</strong>
-            <div className="familyProgress"><div style={{ width: `${profile.totals.progress}%` }} /></div>
+            <strong>{profile.name}<small>{getProfileCharacter(profile).title}</small></strong>
+            <div className="familyProgress"><div style={{width: `${profile.totals.progress}%` }} /></div>
             <em>{profile.totals.progress}%</em>
           </div>
         ))}
@@ -1057,7 +1216,7 @@ function formatStickerList(profile) {
   missingByGroup["Especiales"] = missingSpecials;
   duplicatesByGroup["Especiales"] = duplicateSpecials;
 
-  return { missingByGroup, duplicatesByGroup };
+  return {missingByGroup, duplicatesByGroup };
 }
 
 function renderGroupedList(title, groupedItems) {
@@ -1076,7 +1235,7 @@ function renderGroupedList(title, groupedItems) {
 }
 
 function buildShareText(profile) {
-  const { missingByGroup, duplicatesByGroup } = formatStickerList(profile);
+  const {missingByGroup, duplicatesByGroup } = formatStickerList(profile);
   const missingCount = Object.values(missingByGroup).reduce((sum, items) => sum + items.length, 0);
   const duplicateCount = Object.values(duplicatesByGroup).reduce((sum, items) => sum + items.length, 0);
 
@@ -1089,7 +1248,7 @@ function buildShareText(profile) {
   ].join("\\n");
 }
 
-function ProfileListTools({ profiles }) {
+function ProfileListTools({profiles }) {
   const [selectedProfileId, setSelectedProfileId] = useState(profiles[0]?.id || "");
   const selectedProfile = profiles.find(p => p.id === selectedProfileId) || profiles[0];
   const text = selectedProfile ? buildShareText(selectedProfile) : "";
@@ -1121,9 +1280,9 @@ function ProfileListTools({ profiles }) {
         <head>
           <title>Listado Panini 2026</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 28px; line-height: 1.45; }
-            h1 { margin-bottom: 4px; }
-            pre { white-space: pre-wrap; font-size: 14px; }
+            body {font-family: Arial, sans-serif; padding: 28px; line-height: 1.45; }
+            h1 {margin-bottom: 4px; }
+            pre {white-space: pre-wrap; font-size: 14px; }
           </style>
         </head>
         <body>
@@ -1156,7 +1315,7 @@ function ProfileListTools({ profiles }) {
   );
 }
 
-function TeamDetail({ code, stickers, markOwned, addDuplicate, markTraded, removeNormalCapture }) {
+function TeamDetail({code, stickers, markOwned, addDuplicate, markTraded, removeNormalCapture }) {
   const owned = stickers.filter(s => s.owned).length;
   return (
     <section className="card">
@@ -1180,7 +1339,7 @@ function TeamDetail({ code, stickers, markOwned, addDuplicate, markTraded, remov
   )
 }
 
-function Stats({ totals, packs }) {
+function Stats({totals, packs }) {
   const mainStats = [
     ["Avance total", `${totals.progress}%`, <TrendingUp/>],
     ["Conseguidas", `${totals.owned}/${totals.total}`, <Trophy/>],
@@ -1214,7 +1373,7 @@ function Stats({ totals, packs }) {
         <div className="bigProgress">
           <strong>{totals.progress}%</strong>
           <span>{totals.owned}/{totals.total} estampas</span>
-          <div className="bar"><div style={{ width: `${totals.progress}%` }} /></div>
+          <div className="bar"><div style={{width: `${totals.progress}%` }} /></div>
         </div>
       </section>
 
@@ -1261,7 +1420,7 @@ function Stats({ totals, packs }) {
   );
 }
 
-function TeamRanking({ teams }) {
+function TeamRanking({teams }) {
   return (
     <div className="teamRanking">
       {teams.map(team => (
@@ -1271,7 +1430,7 @@ function TeamRanking({ teams }) {
             <span>{team.name}</span>
           </div>
           <div className="rankBar">
-            <div style={{ width: `${(team.owned / 20) * 100}%` }} />
+            <div style={{width: `${(team.owned / 20) * 100}%` }} />
           </div>
           <b>{team.owned}/20</b>
         </div>
@@ -1280,27 +1439,27 @@ function TeamRanking({ teams }) {
   );
 }
 
-function Duplicates({ collection, markTraded }) {
-  const rows = Object.entries(collection).map(([code, stickers]) => ({ code, stickers: stickers.filter(s => s.duplicates > s.traded) })).filter(r => r.stickers.length);
+function Duplicates({collection, markTraded }) {
+  const rows = Object.entries(collection).map(([code, stickers]) => ({code, stickers: stickers.filter(s => s.duplicates > s.traded) })).filter(r => r.stickers.length);
   return <div className="groups">{rows.map(r => <section className="card" key={r.code}><h3>{flags[r.code]} {countryNames[r.code]}</h3><div className="chips">{r.stickers.map(s => <button key={s.number} onClick={() => markTraded(r.code, s.number)}>{s.number} × {s.duplicates - s.traded}</button>)}</div></section>)}</div>
 }
 
-function Specials({ specials, setSpecials, removeSpecialCapture, extraStickers, addExtraSticker, removeExtraSticker }) {
+function Specials({specials, setSpecials, removeSpecialCapture, extraStickers, addExtraSticker, removeExtraSticker }) {
   function update(id, action) {
-    setUndoStack(prev => [{ label: `${id}: actualizar especial`, collection, specials, packs, log }, ...prev].slice(0, 10));
+    setUndoStack(prev => [{label: `${id}: actualizar especial`, collection, specials, packs, log }, ...prev].slice(0, 10));
     setSpecials(prev => prev.map(s => {
       if (s.id !== id) return s;
-      if (action === "owned") return { ...s, owned: true };
-      if (action === "dupe") return { ...s, owned: true, duplicates: s.duplicates + 1 };
-      if (action === "trade" && s.traded < s.duplicates) return { ...s, traded: s.traded + 1 };
+      if (action === "owned") return {...s, owned: true };
+      if (action === "dupe") return {...s, owned: true, duplicates: s.duplicates + 1 };
+      if (action === "trade" && s.traded < s.duplicates) return {...s, traded: s.traded + 1 };
       return s;
     }));
   }
 
   const specialGroups = [
-    { name: "Panini", items: specials.filter(s => s.group === "Panini") },
-    { name: "FWC · FIFA World Cup", items: specials.filter(s => s.group === "FWC") },
-    { name: "Coca Cola", items: specials.filter(s => s.group === "Coca Cola") }
+    {name: "Panini", items: specials.filter(s => s.group === "Panini") },
+    {name: "FWC · FIFA World Cup", items: specials.filter(s => s.group === "FWC") },
+    {name: "Coca Cola", items: specials.filter(s => s.group === "Coca Cola") }
   ];
 
   const owned = specials.filter(s => s.owned).length;
@@ -1316,7 +1475,7 @@ function Specials({ specials, setSpecials, removeSpecialCapture, extraStickers, 
         <div><span>Repetidas</span><strong>{dupes}</strong></div>
         <div><span>Disponibles cambio</span><strong>{available}</strong></div>
       </div>
-      <div className="specialProgress"><div style={{ width: `${Math.round((owned / 34) * 100)}%` }} /></div>
+      <div className="specialProgress"><div style={{width: `${Math.round((owned / 34) * 100)}%` }} /></div>
       {specialGroups.map(group => (
         <div key={group.name} className="specialGroup">
           <h3>{group.name}</h3>
@@ -1342,7 +1501,7 @@ function Specials({ specials, setSpecials, removeSpecialCapture, extraStickers, 
   );
 }
 
-function ExtraStickers({ extraStickers, addExtraSticker, removeExtraSticker }) {
+function ExtraStickers({extraStickers, addExtraSticker, removeExtraSticker }) {
   const [playerName, setPlayerName] = useState("");
   const [color, setColor] = useState("morado");
 
