@@ -1,8 +1,9 @@
 
-import React, {useEffect, useMemo, useState } from "react";
+import React, {useEffect, useMemo, useRef, useState } from "react";
 import {Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle, TrendingUp, Target, Wallet, CalendarDays, Medal, Users, UserPlus, Crown, ClipboardList, MessageCircle, Printer} from "lucide-react";
 import {motion } from "framer-motion";
-import {loadCloudFamily, saveCloudFamily, subscribeCloudFamily } from "./firebase";
+import {loadCloudFamily, saveCloudFamily } from "./firebase";
+import Achievements, { calculateAchievements, getAchievementById } from "./components/Achievements";
 import avatarGoleadora from "./assets/avatars/goleadora-estrella.png";
 import avatarPortero from "./assets/avatars/portero-imbatible.png";
 import avatarCapitana from "./assets/avatars/la-capitana.png";
@@ -349,6 +350,7 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [quickCode, setQuickCode] = useState("");
   const [captureFeedback, setCaptureFeedback] = useState(null);
+  const achievementSnapshotRef = useRef({ profileId: null, achievements: null });
   const [showLog, setShowLog] = useState(false);
   const [cloudStatus, setCloudStatus] = useState("local");
   const [cloudReady, setCloudReady] = useState(false);
@@ -481,40 +483,33 @@ export default function App() {
   useEffect(() => localStorage.setItem("panini2026_activeProfileId", activeProfile.id), [activeProfile.id]);
 
   useEffect(() => {
-    let unsubscribe = null;
     let cancelled = false;
 
-    async function startCloudSyncSafe() {
+    async function loadInitialCloudData() {
       try {
         setCloudStatus("revisando nube");
         const cloudData = await loadCloudFamily();
 
-        if (!cancelled && cloudData?.familyProfiles?.length) {
-          setFamilyProfiles(cloudData.familyProfiles.map(normalizeProfileCharacter));
-          setActiveProfileId(cloudData.activeProfileId || cloudData.familyProfiles[0].id);
-          localStorage.setItem("panini2026_familyProfiles", JSON.stringify(cloudData.familyProfiles));
-          localStorage.setItem("panini2026_activeProfileId", cloudData.activeProfileId || cloudData.familyProfiles[0].id);
+        if (cancelled) return;
+
+        if (cloudData?.familyProfiles?.length) {
+          const normalizedProfiles = cloudData.familyProfiles.map(normalizeProfileCharacter);
+          const localActiveId = localStorage.getItem("panini2026_activeProfileId");
+          const safeActiveId = normalizedProfiles.some(profile => profile.id === localActiveId)
+            ? localActiveId
+            : normalizedProfiles[0].id;
+
+          setFamilyProfiles(normalizedProfiles);
+          setActiveProfileId(safeActiveId);
+          localStorage.setItem("panini2026_familyProfiles", JSON.stringify(normalizedProfiles));
+          localStorage.setItem("panini2026_activeProfileId", safeActiveId);
           setCloudReady(true);
           setCloudStatus("sincronizado");
-        } else if (!cancelled) {
-          // Importante: NO sembrar nube vacía automáticamente.
-          // Primero el usuario debe importar o validar su respaldo real y presionar Guardar nube.
+          setLastCloudUpdate(new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }));
+        } else {
           setCloudReady(true);
           setCloudStatus("nube vacía");
         }
-
-        unsubscribe = subscribeCloudFamily((cloudSnapshot) => {
-          if (!cloudSnapshot?.familyProfiles?.length) return;
-          setFamilyProfiles(cloudSnapshot.familyProfiles.map(normalizeProfileCharacter));
-          setActiveProfileId(cloudSnapshot.activeProfileId || cloudSnapshot.familyProfiles[0].id);
-          localStorage.setItem("panini2026_familyProfiles", JSON.stringify(cloudSnapshot.familyProfiles));
-          localStorage.setItem("panini2026_activeProfileId", cloudSnapshot.activeProfileId || cloudSnapshot.familyProfiles[0].id);
-          setCloudStatus("sincronizado");
-          setLastCloudUpdate(new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }));
-        }, (error) => {
-          console.error("Cloud realtime error", error);
-          setCloudStatus("modo local");
-        });
       } catch (error) {
         console.error("Cloud start error", error);
         setCloudStatus("modo local");
@@ -522,25 +517,12 @@ export default function App() {
       }
     }
 
-    startCloudSyncSafe();
+    loadInitialCloudData();
 
     return () => {
       cancelled = true;
-      if (unsubscribe) unsubscribe();
     };
   }, []);
-
-
-
-  useEffect(() => {
-    setCloudStatus("multiusuario local");
-    setCloudReady(false);
-  }, []);
-
-
-  useEffect(() => {
-    setCloudStatus("multiusuario local");
-  }, [familyProfiles]);
 
   const totals = useMemo(() => {
     const normal = Object.values(collection).flat();
@@ -579,6 +561,45 @@ export default function App() {
     return {total, owned, missing, dupes, traded, availableDupes, normalOwned, specialOwned, progress, nextNewProbability, estimatedPacks, completionByTeam, completedTeams, almostTeams, weakestTeams, strongestTeams, usefulRate, duplicateRate, expectedUsefulPerPack, recommendedMode, estimatedCostRemaining, albumIntensity };
   }, [collection, specials]);
 
+  const activeAchievements = useMemo(() => calculateAchievements(activeProfile, familyProfiles), [activeProfile, familyProfiles]);
+
+  useEffect(() => {
+    if (!activeProfile?.id) return;
+    const current = JSON.stringify(activeProfile.achievements || {});
+    const next = JSON.stringify(activeAchievements);
+    if (current === next) return;
+
+    setFamilyProfiles(prev => prev.map(profile => (
+      profile.id === activeProfile.id
+        ? {...profile, achievements: activeAchievements }
+        : profile
+    )));
+  }, [activeProfile?.id, activeAchievements]);
+
+  useEffect(() => {
+    if (!activeProfile?.id) return;
+
+    const previous = achievementSnapshotRef.current;
+    const profileChanged = previous.profileId !== activeProfile.id;
+
+    if (profileChanged || !previous.achievements) {
+      achievementSnapshotRef.current = { profileId: activeProfile.id, achievements: activeAchievements };
+      return;
+    }
+
+    const newlyUnlocked = Object.entries(activeAchievements)
+      .filter(([id, unlocked]) => unlocked && !previous.achievements[id])
+      .map(([id]) => getAchievementById(id))
+      .filter(Boolean);
+
+    achievementSnapshotRef.current = { profileId: activeProfile.id, achievements: activeAchievements };
+
+    if (tab !== "capture" || newlyUnlocked.length === 0) return;
+
+    const achievement = newlyUnlocked[0];
+    window.setTimeout(() => showAchievementUnlocked(achievement), 120);
+  }, [activeProfile?.id, activeAchievements, tab]);
+
   function addLog(text) {
     const now = new Date();
     setLog(prev => [{text, time: now.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }) }, ...prev].slice(0, 30));
@@ -587,6 +608,37 @@ export default function App() {
   function showFeedback(type, title, detail) {
     setCaptureFeedback({type, title, detail });
     window.setTimeout(() => setCaptureFeedback(null), 1800);
+  }
+
+  function playAchievementSound() {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const audioContext = new AudioContextClass();
+      const gain = audioContext.createGain();
+      gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.55);
+      gain.connect(audioContext.destination);
+
+      [523.25, 659.25, 783.99].forEach((frequency, index) => {
+        const oscillator = audioContext.createOscillator();
+        oscillator.type = "triangle";
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + index * 0.08);
+        oscillator.connect(gain);
+        oscillator.start(audioContext.currentTime + index * 0.08);
+        oscillator.stop(audioContext.currentTime + 0.48 + index * 0.08);
+      });
+    } catch (error) {
+      console.warn("No se pudo reproducir el sonido del logro", error);
+    }
+  }
+
+  function showAchievementUnlocked(achievement) {
+    if (!achievement) return;
+    playAchievementSound();
+    showFeedback("achievement", "Logro desbloqueado", achievement.title);
+    addLog(`Logro desbloqueado: ${achievement.title}`);
   }
 
   function suggestTeamCode(inputCode) {
@@ -906,6 +958,7 @@ export default function App() {
         <button onClick={() => setTab("duplicates")} className={tab === "duplicates" ? "active" : ""}><Repeat2 size={17}/> Repetidas</button>
         <button onClick={() => setTab("specials")} className={tab === "specials" ? "active" : ""}><Star size={17}/> Especiales</button>
         <button onClick={() => setTab("family")} className={tab === "family" ? "active" : ""}><Users size={17}/> Familia</button>
+        <button onClick={() => setTab("achievements")} className={tab === "achievements" ? "active" : ""}><Medal size={17}/> Logros</button>
         <button onClick={undoLastAction} className="undo">Deshacer</button>
         <button onClick={exportBackup} className="backupBtn"><Download size={17}/> Exportar</button>
         <label className="backupBtn importBtn"><Upload size={17}/> Importar<input type="file" accept="application/json" onChange={importBackup} hidden /></label>
@@ -913,19 +966,18 @@ export default function App() {
           try {
             setCloudStatus("guardando nube");
             await saveCloudFamily({
-              familyProfiles,
-              activeProfileId: activeProfile.id,
-              schemaVersion: 10.1,
+              familyProfiles: familyProfiles.map(normalizeProfileCharacter),
+              schemaVersion: 13.8,
               updatedFrom: "manual-button",
               clientUpdatedAt: new Date().toISOString()
             });
             setCloudStatus("sincronizado");
             setLastCloudUpdate(new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }));
-            showFeedback("new", "Nube actualizada", "Este avance será la base para todos los dispositivos");
+            showFeedback("new", "Nube actualizada", "Avance guardado en estructura segura por perfil");
           } catch (error) {
             console.error(error);
             setCloudStatus("error nube");
-            showFeedback("error", "Error en nube", "No se pudo guardar en Firebase");
+            showFeedback("error", "Error en nube", error?.message || "No se pudo guardar en Firebase");
           }
         }} className="backupBtn cloudBtn">Guardar nube</button>
       </nav>
@@ -1014,6 +1066,7 @@ export default function App() {
       {tab === "stats" && <Stats totals={totals} packs={packs}/>}
       {tab === "duplicates" && <Duplicates collection={collection} markTraded={markTraded}/>}
       {tab === "specials" && <Specials specials={specials} setSpecials={setSpecials} removeSpecialCapture={removeSpecialCapture} extraStickers={extraStickers} addExtraSticker={addExtraSticker} removeExtraSticker={removeExtraSticker}/>}
+      {tab === "achievements" && <Achievements profile={activeProfile} familyProfiles={familyProfiles} />}
 
       {tab === "family" && (
         <div className="familyScreen">

@@ -626,3 +626,456 @@
     height:158px;
   }
 }
+
+
+/* Sprint 13.3 · Logros y Medallas · diseño final */
+.achievementsDashboard {
+  --card-w: 178px;
+  --card-h: 238px;
+  min-height: 100vh;
+  padding: 18px;
+  border-radius: 0;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(37, 99, 235, 0.24), transparent 36%),
+    linear-gradient(135deg, #03101f 0%, #071a33 52%, #020817 100%);
+}
+
+.achievementTopbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.achievementTitleBlock {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.achievementMainIcon {
+  font-size: 56px;
+  line-height: 1;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,0.3));
+}
+
+.achievementTopbar h2 {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 0.95;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  text-shadow: 0 4px 16px rgba(0,0,0,0.28);
+}
+
+.achievementTopbar p {
+  margin: 8px 0 0;
+  color: #e2e8f0;
+  font-size: clamp(16px, 2vw, 22px);
+}
+
+.achievementUnlockedCounter {
+  min-width: 220px;
+  padding: 14px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  background: rgba(2, 6, 23, 0.58);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 24px rgba(0,0,0,0.22);
+  text-align: center;
+}
+
+.achievementUnlockedCounter span {
+  display: block;
+  font-size: 32px;
+  font-weight: 950;
+  color: #ffffff;
+}
+
+.achievementUnlockedCounter small {
+  display: block;
+  color: #e5e7eb;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.achievementLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.achievementCategory {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(2, 18, 38, 0.78);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 12px 24px rgba(0,0,0,0.18);
+}
+
+.achievementCategory-collector {
+  grid-column: 1 / -1;
+}
+
+.achievementCategory > h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 950;
+  color: #f8fafc;
+}
+
+.categoryDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  display: inline-block;
+  box-shadow: 0 0 14px currentColor;
+}
+.categoryDot-gold { background: #facc15; color: #facc15; }
+.categoryDot-blue { background: #38bdf8; color: #38bdf8; }
+.categoryDot-green { background: #7ddf64; color: #7ddf64; }
+.categoryDot-purple { background: #a78bfa; color: #a78bfa; }
+.categoryDot-pink { background: #fb7185; color: #fb7185; }
+
+.achievementCategory-collector > h3 { color: #facc15; }
+.achievementCategory-worldCup > h3 { color: #7dd3fc; }
+.achievementCategory-specials > h3 { color: #86efac; }
+.achievementCategory-family > h3 { color: #c4b5fd; }
+.achievementCategory-consistency > h3 { color: #f9a8d4; }
+
+.achievementsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.achievementCard {
+  width: var(--card-w);
+  height: var(--card-h);
+  min-width: var(--card-w);
+  max-width: var(--card-w);
+  flex: 0 0 var(--card-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  padding: 14px 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.42);
+  box-shadow: 0 12px 22px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.38);
+  color: #020617;
+  overflow: hidden;
+}
+
+.achievementCard-collector { background: linear-gradient(180deg, #fff9d7 0%, #fff1b8 100%); }
+.achievementCard-worldCup { background: linear-gradient(180deg, #e1f5ff 0%, #bfebff 100%); }
+.achievementCard-specials { background: linear-gradient(180deg, #eefddf 0%, #d8f8c8 100%); }
+.achievementCard-family { background: linear-gradient(180deg, #f4e9ff 0%, #e6d6ff 100%); }
+.achievementCard-consistency { background: linear-gradient(180deg, #ffe5ec 0%, #ffd2dd 100%); }
+
+.achievementIcon {
+  width: 94px;
+  height: 94px;
+  flex: 0 0 94px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.44);
+  font-size: 64px;
+  line-height: 1;
+  filter: drop-shadow(0 8px 10px rgba(15,23,42,0.16));
+}
+
+.achievementIcon-collectorNovice::before { content: ""; }
+.achievementIcon-firstPack { font-size: 66px; }
+.achievementIcon-hundredStickers { font-size: 66px; }
+.achievementIcon-twoHundredFiftyStickers { font-size: 68px; }
+.achievementIcon-fiveHundredStickers,
+.achievementIcon-sevenHundredFiftyStickers,
+.achievementIcon-worldChampion { font-size: 66px; }
+.achievementIcon-albumComplete { font-size: 70px; }
+.achievementIcon-worldCupRoad { font-size: 66px; }
+.achievementIcon-almostChampion { font-size: 68px; }
+.achievementIcon-cocaColaComplete { font-size: 64px; }
+.achievementIcon-fwcComplete { font-size: 64px; }
+.achievementIcon-sevenDays,
+.achievementIcon-thirtyDays,
+.achievementIcon-hundredDays { font-size: 66px; }
+
+.achievementBody {
+  width: 100%;
+  display: flex;
+  min-height: 112px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.achievementBody h3 {
+  margin: 0;
+  color: #020617;
+  font-size: 17px;
+  line-height: 1.08;
+  font-weight: 950;
+  text-shadow: none;
+}
+
+.achievementBody p {
+  margin: 6px 0 0;
+  color: #020617;
+  font-size: 14px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.achievementBody small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: #020617;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 850;
+}
+
+.achievementBody small::before {
+  content: "✓";
+  display: inline-grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 999px;
+  background: #168b3a;
+  color: white;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.achievementFooter {
+  margin-top: 12px;
+  padding: 14px 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: 18px;
+  background: rgba(2, 18, 38, 0.78);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  color: #f8fafc;
+}
+
+.achievementFooter span { font-size: 42px; }
+.achievementFooter strong { color: #facc15; font-size: 20px; }
+.achievementFooter p { margin: 3px 0 0; color: #e2e8f0; }
+
+.achievementEmpty.darkEmpty {
+  background: rgba(2, 18, 38, 0.78);
+  border: 1px dashed rgba(147, 197, 253, 0.42);
+  color: #f8fafc;
+}
+
+.achievementEmpty.darkEmpty strong { color: #ffffff; }
+.achievementEmpty.darkEmpty p { color: #cbd5e1; }
+
+@media (max-width: 980px) {
+  .achievementLayout { grid-template-columns: 1fr; }
+  .achievementTopbar { align-items: flex-start; flex-direction: column; }
+  .achievementUnlockedCounter { width: 100%; }
+}
+
+@media (max-width: 720px) {
+  .achievementsDashboard {
+    --card-w: 150px;
+    --card-h: 220px;
+    padding: 12px;
+  }
+  .achievementIcon {
+    width: 78px;
+    height: 78px;
+    flex-basis: 78px;
+    font-size: 50px;
+  }
+  .achievementBody h3 { font-size: 15px; }
+  .achievementBody p { font-size: 13px; }
+}
+
+
+/* Sprint 13.4 · Imágenes reales + alerta de logro desbloqueado */
+.achievementMainIcon {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  font-size: 0;
+}
+
+.achievementMainIcon img {
+  width: 74px;
+  height: 74px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,0.35));
+}
+
+.achievementUnlockedCounter span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.achievementUnlockedCounter span img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.achievementIcon {
+  font-size: 0 !important;
+  overflow: visible;
+}
+
+.achievementIcon img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 8px 10px rgba(15, 23, 42, 0.22));
+}
+
+.achievementCard {
+  justify-content: space-between;
+}
+
+.achievementCard .achievementBody small {
+  color: #064e3b;
+  background: rgba(255,255,255,0.7);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  letter-spacing: .02em;
+}
+
+.achievementFooter span {
+  width: 52px;
+  height: 52px;
+  font-size: 0;
+  display: grid;
+  place-items: center;
+}
+
+.achievementFooter span img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.captureFeedback.achievement {
+  border-color: rgba(250, 204, 21, 0.8);
+  background: linear-gradient(135deg, rgba(254, 249, 195, 0.98), rgba(255, 237, 213, 0.98));
+  color: #431407;
+  box-shadow: 0 18px 35px rgba(245, 158, 11, 0.24);
+  animation: achievementPop 1.8s ease both;
+}
+
+.captureFeedback.achievement strong {
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.captureFeedback.achievement span {
+  color: #111827;
+  font-weight: 950;
+}
+
+.captureFeedback.achievement::before {
+  content: "";
+  width: 46px;
+  height: 46px;
+  margin-right: 10px;
+  background-image: url('/achievements/gold-cup.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: drop-shadow(0 7px 8px rgba(146, 64, 14, .25));
+}
+
+@keyframes achievementPop {
+  0% { transform: translateY(-8px) scale(.98); opacity: 0; }
+  12% { transform: translateY(0) scale(1.02); opacity: 1; }
+  72% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-6px) scale(.98); opacity: 0; }
+}
+
+@media (max-width: 720px) {
+  .achievementIcon img {
+    width: 80px;
+    height: 80px;
+  }
+  .achievementMainIcon,
+  .achievementMainIcon img {
+    width: 58px;
+    height: 58px;
+  }
+}
+
+
+/* Sprint 13.9 · Imágenes premium de logros tomadas del mockup autorizado */
+.achievementIcon {
+  width: 100%;
+  height: 112px;
+  flex: 0 0 112px;
+  border-radius: 14px;
+  background: transparent;
+  filter: none;
+  overflow: hidden;
+}
+
+.achievementIcon img {
+  width: 100%;
+  height: 112px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 8px 12px rgba(15, 23, 42, 0.18));
+}
+
+.achievementCard-collector .achievementIcon img,
+.achievementCard-consistency .achievementIcon img {
+  object-fit: contain;
+}
+
+.achievementCard-worldCup .achievementIcon img,
+.achievementCard-specials .achievementIcon img,
+.achievementCard-family .achievementIcon img {
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.achievementMainIcon img,
+.achievementUnlockedCounter span img,
+.achievementFooter span img {
+  object-fit: contain;
+}
+
+.captureFeedback.achievement::before {
+  background-image: url('/achievements/gold-cup.png');
+}
+
+@media (max-width: 720px) {
+  .achievementIcon,
+  .achievementIcon img {
+    height: 96px;
+    flex-basis: 96px;
+  }
+}
