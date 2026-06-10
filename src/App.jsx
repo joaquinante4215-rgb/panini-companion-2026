@@ -2,7 +2,7 @@
 import React, {useEffect, useMemo, useRef, useState } from "react";
 import {Trophy, Star, Repeat2, CheckCircle2, XCircle, BarChart3, PackageOpen, Search, Shuffle, Download, Upload, Trash2, PlusCircle, TrendingUp, Target, Wallet, CalendarDays, Medal, Users, UserPlus, Crown, ClipboardList, MessageCircle, Printer} from "lucide-react";
 import {motion } from "framer-motion";
-import {loadCloudFamily, saveCloudFamily } from "./firebase";
+import { loadCloudFamily, saveCloudFamily, deleteCloudMember } from "./firebase";
 import Achievements, { calculateAchievements, getAchievementById } from "./components/Achievements";
 import avatarGoleadora from "./assets/avatars/goleadora-estrella.png";
 import avatarPortero from "./assets/avatars/portero-imbatible.png";
@@ -337,6 +337,23 @@ export default function App() {
   const [activeProfileId, setActiveProfileId] = useState(() => localStorage.getItem("panini2026_activeProfileId") || "valentina");
   const activeProfile = familyProfiles.find(p => p.id === activeProfileId) || familyProfiles[0];
 
+  function isGhostProfile(profile) {
+    const value = `${profile?.id || ""} ${profile?.name || ""}`
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    return (
+      value.includes("mich-y-omar") ||
+      value.includes("mich y omar") ||
+      value.includes("mich") && value.includes("omar")
+    );
+  }
+
+  function removeGhostProfiles(profiles) {
+    return (profiles || []).filter(profile => !isGhostProfile(profile));
+  }
+
   const collection = activeProfile.collection;
   const specials = activeProfile.specials;
   const extraStickers = activeProfile.extraStickers || [];
@@ -456,27 +473,34 @@ export default function App() {
   }
 
   function deleteFamilyProfile(profileId) {
-    setFamilyProfiles(prev => {
-      if (prev.length <= 1) {
-        showFeedback("error", "No se puede eliminar", "Debe existir al menos un perfil");
-        return prev;
-      }
+    const profile = familyProfiles.find(p => p.id === profileId);
 
-      const profile = prev.find(p => p.id === profileId);
-      if (!profile) return prev;
+    if (familyProfiles.length <= 1) {
+      showFeedback("error", "No se puede eliminar", "Debe existir al menos un perfil");
+      return;
+    }
 
-      const ok = window.confirm(`¿Eliminar el perfil ${profile.name}? Esta acción no se puede deshacer.`);
-      if (!ok) return prev;
+    if (!profile) return;
 
-      const next = prev.filter(p => p.id !== profileId);
+    const ok = window.confirm(`¿Eliminar el perfil ${profile.name}? Esta acción no se puede deshacer.`);
+    if (!ok) return;
 
-      if (activeProfile.id === profileId) {
-        setActiveProfileId(next[0].id);
-      }
+    const next = familyProfiles.filter(p => p.id !== profileId);
 
-      showFeedback("error", "Perfil eliminado", profile.name);
-      return next;
-    });
+    setFamilyProfiles(next);
+
+    if (activeProfile.id === profileId) {
+      setActiveProfileId(next[0].id);
+    }
+
+    deleteCloudMember(profileId)
+      .then(() => {
+        showFeedback("new", "Perfil eliminado de la nube", `${profile.name} ya no aparecerá en otros dispositivos`);
+      })
+      .catch(error => {
+        console.error("Error deleting cloud profile", error);
+        showFeedback("error", "Perfil eliminado localmente", "Presiona Guardar nube para completar la limpieza");
+      });
   }
 
   useEffect(() => localStorage.setItem("panini2026_familyProfiles", JSON.stringify(familyProfiles)), [familyProfiles]);
@@ -493,11 +517,26 @@ export default function App() {
         if (cancelled) return;
 
         if (cloudData?.familyProfiles?.length) {
-          const normalizedProfiles = cloudData.familyProfiles.map(normalizeProfileCharacter);
+          const rawProfiles = cloudData.familyProfiles.map(normalizeProfileCharacter);
+          const ghostProfiles = rawProfiles.filter(isGhostProfile);
+          const normalizedProfiles = removeGhostProfiles(rawProfiles);
+
+          if (ghostProfiles.length) {
+            ghostProfiles.forEach(profile => {
+              deleteCloudMember(profile.id).catch(error => console.error("Ghost profile cleanup error", error));
+            });
+          }
+
           const localActiveId = localStorage.getItem("panini2026_activeProfileId");
           const safeActiveId = normalizedProfiles.some(profile => profile.id === localActiveId)
             ? localActiveId
-            : normalizedProfiles[0].id;
+            : normalizedProfiles[0]?.id;
+
+          if (!normalizedProfiles.length) {
+            setCloudReady(true);
+            setCloudStatus("nube sin perfiles válidos");
+            return;
+          }
 
           setFamilyProfiles(normalizedProfiles);
           setActiveProfileId(safeActiveId);
@@ -967,7 +1006,7 @@ export default function App() {
             setCloudStatus("guardando nube");
             await saveCloudFamily({
               familyProfiles: familyProfiles.map(normalizeProfileCharacter),
-              schemaVersion: 13.8,
+              schemaVersion: 13.13,
               updatedFrom: "manual-button",
               clientUpdatedAt: new Date().toISOString()
             });

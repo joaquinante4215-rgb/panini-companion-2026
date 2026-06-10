@@ -9,7 +9,8 @@ import {
   writeBatch,
   serverTimestamp,
   onSnapshot,
-  deleteField
+  deleteField,
+  deleteDoc
 } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -93,11 +94,15 @@ export async function loadCloudFamily() {
 export async function saveCloudFamily(data) {
   const cleanData = cleanForFirestore(data || {});
   const familyProfiles = Array.isArray(cleanData.familyProfiles) ? cleanData.familyProfiles : [];
+  const desiredMemberIds = new Set(
+    familyProfiles.map((profile, index) => safeDocId(profile.id, `member-${index + 1}`))
+  );
+  const existingMembersSnapshot = await getDocs(membersCollectionRef);
   const batch = writeBatch(db);
 
   // El documento principal queda ligero. Nunca vuelve a guardar todos los perfiles juntos.
   batch.set(familyDocRef, {
-    schemaVersion: 13.8,
+    schemaVersion: 13.13,
     storageMode: "split-members",
     updatedFrom: cleanData.updatedFrom || "manual-button",
     clientUpdatedAt: cleanData.clientUpdatedAt || new Date().toISOString(),
@@ -119,7 +124,31 @@ export async function saveCloudFamily(data) {
     }, { merge: true });
   });
 
+  // Limpieza real de perfiles eliminados: si un perfil ya no está en la app,
+  // también se borra de Firebase para que no reaparezca en otros dispositivos.
+  existingMembersSnapshot.docs.forEach(memberDoc => {
+    if (!desiredMemberIds.has(memberDoc.id)) {
+      batch.delete(memberDoc.ref);
+    }
+  });
+
   await batch.commit();
+}
+
+export async function deleteCloudMember(profileId) {
+  const memberId = safeDocId(profileId);
+  const memberRef = doc(db, "families", FAMILY_ID, "members", memberId);
+  await deleteDoc(memberRef);
+
+  await setDoc(familyDocRef, {
+    schemaVersion: 13.13,
+    storageMode: "split-members",
+    lastDeletedMemberId: memberId,
+    clientUpdatedAt: new Date().toISOString(),
+    updatedAt: serverTimestamp(),
+    familyProfiles: deleteField(),
+    activeProfileId: deleteField()
+  }, { merge: true });
 }
 
 export function subscribeCloudFamily(callback, onError) {
