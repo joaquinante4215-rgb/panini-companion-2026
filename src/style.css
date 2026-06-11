@@ -1079,3 +1079,89 @@
     flex-basis: 96px;
   }
 }
+
+.captureFeedback.achievement,
+.captureFeedback.celebration{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(135deg, rgba(250,204,21,.30), rgba(59,130,246,.26), rgba(16,185,129,.22));
+  border-color:rgba(253,224,71,.72);
+  box-shadow:0 0 0 4px rgba(250,204,21,.12), 0 18px 48px rgba(250,204,21,.18);
+}
+.captureFeedback.celebration strong{
+  color:#fef3c7;
+  text-shadow:0 2px 12px rgba(0,0,0,.35);
+  letter-spacing:.02em;
+}
+.captureFeedback.celebration span{
+  color:#ffffff;
+  font-weight:800;
+}
+.captureFeedback.celebration::after{
+  content:"";
+  position:absolute;
+  inset:-40%;
+  background:radial-gradient(circle at 20% 30%, rgba(255,255,255,.55) 0 3px, transparent 4px),
+             radial-gradient(circle at 80% 20%, rgba(253,224,71,.75) 0 4px, transparent 5px),
+             radial-gradient(circle at 55% 80%, rgba(96,165,250,.65) 0 3px, transparent 4px);
+  opacity:.55;
+  animation:celebrationSparkle 1.4s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+@keyframes celebrationSparkle{
+  from{transform:translateY(0) rotate(0deg);opacity:.28}
+  to{transform:translateY(14px) rotate(8deg);opacity:.70}
+}
+
+.segmentedControls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:14px;
+}
+.segmentedControls button{
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  border-radius:14px;
+  padding:10px 16px;
+  font-weight:900;
+  cursor:pointer;
+}
+.segmentedControls button.active{
+  background:#fff;
+  color:#071126;
+  box-shadow:0 10px 24px rgba(255,255,255,.12);
+}
+.duplicatesScreen{
+  display:grid;
+  gap:18px;
+}
+.duplicateGroup h3{
+  margin-top:0;
+  color:#facc15;
+}
+.duplicateTeamGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+  gap:14px;
+}
+.duplicateTeamCard{
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.055);
+  border-radius:18px;
+  padding:14px;
+}
+.duplicateTeamCard h4{
+  margin:0 0 12px;
+  color:#fff;
+  font-size:16px;
+}
+.duplicateTeamCard .chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.duplicateTeamCard .chips button{
+  font-weight:900;
+}

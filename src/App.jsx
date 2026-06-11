@@ -57,6 +57,27 @@ const flags = {
   ENG:"🏴", CRO:"🇭🇷", GHA:"🇬🇭", PAN:"🇵🇦",
 };
 
+
+const teamOrderIndex = groups.reduce((acc, group, groupIndex) => {
+  group.teams.forEach((code, teamIndex) => {
+    acc[code] = groupIndex * 10 + teamIndex;
+  });
+  return acc;
+}, {});
+
+function getCountryLabel(code) {
+  return `${countryNames[code] || code} (${code})`;
+}
+
+function sortTeamCodes(codes, mode = "group") {
+  return [...codes].sort((a, b) => {
+    if (mode === "alpha") {
+      return (countryNames[a] || a).localeCompare(countryNames[b] || b, "es", { sensitivity: "base" });
+    }
+    return (teamOrderIndex[a] ?? 9999) - (teamOrderIndex[b] ?? 9999);
+  });
+}
+
 const missingByTeam = {"MEX":[3,5,6,7,9,10,13,14,15,18],"RSA":[2,5,6,9,10,11,14,15,16,18,19,20],"KOR":[4,6,10,11,12,14,16,17,19,20],"CZE":[5,11,12,16,17],"CAN":[3,4,9,11,13,15,16,17,19],"BIH":[3,4,5,9,14,15,16,17,18,19],"QAT":[1,2,4,6,7,10,11,13,14,16,18,20],"SUI":[1,4,8,9,10,12,14,15,16,19,20],"BRA":[3,4,5,6,8,10,15,16,17,19,20],"MAR":[1,4,5,8,12,15,16,17,18,20],"HAI":[3,4,6,7,13,14,16,18],"SCO":[5,7,8,9,10,11,12,13,14,15,17,18,20],"USA":[1,2,5,7,8,9,10,11,12,15,17,18,19,20],"PAR":[1,5,7,8,9,10,12,13,14,15,17,20],"AUS":[1,2,3,5,6,7,8,9,10,14,16,19,20],"TUR":[3,4,5,11,13,14,16,18,19],"GER":[2,5,7,8,9,12,16,18,20],"CUW":[1,2,4,5,6,7,9,10,11,12,13,15,18,20],"CIV":[1,3,4,7,8,9,10,11,14,15,16,18,20],"ECU":[3,4,6,9,10,11,12,13,14,16,20],"NED":[2,5,8,9,10,11,13,14,17,18,19],"JPN":[1,3,4,5,6,7,10,11,13,14,15,16,18],"SWE":[6,15,16,17,18,20],"TUN":[1,2,3,4,8,10,11,13,14,17,19],"BEL":[1,2,3,4,5,6,7,9,10,12,13,17,18,19,20],"EGY":[2,4,6,7,8,9,12,13,15,17,19,20],"IRN":[1,4,5,6,7,9,10,14,16,17,19],"NZL":[2,3,5,7,8,9,10,11,12,14,16,17,20],"ESP":[2,5,11,13,14,16,18,20],"CPV":[3,4,7,8,11,12,13,15,16,18,19],"KSA":[1,2,3,4,5,6,7,8,10,11,13,16,17,20],"URU":[3,6,9,10,13,14,15,16,17,19],"FRA":[2,3,4,5,7,8,12,15,19],"SEN":[1,4,5,7,9,10,11,19,20],"IRQ":[2,4,10,14,16,17],"NOR":[1,2,3,6,7,9,10,11,12,13,15,16,17,18,19],"ARG":[1,5,6,9,11,12,13,14,15,16,18,19,20],"ALG":[1,2,4,5,7,9,10,11,14,15,16,19,20],"AUT":[1,2,3,5,6,8,9,11,12,13,14,16,17,18,19],"JOR":[2,3,4,5,6,8,9,11,12,15,16,18,19,20],"POR":[3,4,7,10,11,12,15,16,17,18,20],"COD":[1,9,10,12,13,14,17,19],"UZB":[1,2,3,4,5,7,8,9,10,11,12,13,14,15,16,19,20],"COL":[1,2,4,5,6,7,8,10,14,15,16,17,19,20],"ENG":[2,5,6,9,13,14,17,19],"CRO":[6,7,9,12,14,15,16,18,19,20],"GHA":[2,6,9,12,13,14,15,16,17],"PAN":[6,7,8,10,11,12,13,14,15,16,18,19]};
 const duplicateByTeam = {"MEX":{"2":1,"19":1,"20":1},"RSA":{"17":1},"KOR":{"2":1,"7":1},"CZE":{"1":1,"4":2,"6":2,"7":1,"10":3,"13":1,"14":2,"15":2,"18":1},"CAN":{"5":2,"8":1,"10":1,"12":1,"18":1},"BIH":{"1":2,"2":1,"7":2,"8":1,"11":2,"13":1},"QAT":{"8":1},"SUI":{"13":1,"18":1},"BRA":{"9":1,"12":1,"18":1},"MAR":{"6":1},"HAI":{"5":1,"10":1,"12":1,"15":1},"SCO":{"6":1,"16":1},"USA":{},"PAR":{"2":1,"19":2},"AUS":{},"TUR":{"1":1,"7":1,"9":1,"10":2,"15":1,"16":1},"GER":{},"CUW":{},"CIV":{"2":1,"12":1},"ECU":{"1":1,"2":1,"5":1,"9":1,"19":1},"NED":{"7":1},"JPN":{"19":1},"SWE":{"5":2,"7":1,"9":1,"10":1},"TUN":{"5":1,"16":1},"BEL":{"8":1,"11":1,"15":1},"EGY":{"14":1,"16":1,"18":1},"IRN":{"20":1},"NZL":{"4":2,"6":1,"19":1},"ESP":{"6":1,"8":1},"CPV":{"14":1,"20":1},"KSA":{"14":1,"15":1},"URU":{"5":1,"7":2,"8":2},"FRA":{"11":1,"18":1},"SEN":{"2":1},"IRQ":{"3":2,"6":1,"7":1,"8":1,"9":3,"13":1,"15":2,"18":1},"NOR":{"8":1},"ARG":{"7":1,"17":1},"ALG":{"12":1,"13":1},"AUT":{"20":1},"JOR":{"10":1},"POR":{"13":1,"14":1},"COD":{"5":1,"7":1,"15":1,"18":3,"20":1},"UZB":{},"COL":{"13":1},"ENG":{"3":1,"4":1,"8":1,"16":1},"CRO":{"5":1,"11":1},"GHA":{"18":1},"PAN":{"9":1}};
 
@@ -644,9 +665,9 @@ export default function App() {
     setLog(prev => [{text, time: now.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }) }, ...prev].slice(0, 30));
   }
 
-  function showFeedback(type, title, detail) {
+  function showFeedback(type, title, detail, duration = 1800) {
     setCaptureFeedback({type, title, detail });
-    window.setTimeout(() => setCaptureFeedback(null), 1800);
+    window.setTimeout(() => setCaptureFeedback(null), duration);
   }
 
   function playAchievementSound() {
@@ -678,6 +699,135 @@ export default function App() {
     playAchievementSound();
     showFeedback("achievement", "Logro desbloqueado", achievement.title);
     addLog(`Logro desbloqueado: ${achievement.title}`);
+  }
+
+
+  function playCelebrationSound() {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const audioContext = new AudioContextClass();
+      const gain = audioContext.createGain();
+      gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.16, audioContext.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.9);
+      gain.connect(audioContext.destination);
+
+      [392.0, 523.25, 659.25, 783.99, 1046.5].forEach((frequency, index) => {
+        const oscillator = audioContext.createOscillator();
+        oscillator.type = index % 2 === 0 ? "triangle" : "sine";
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + index * 0.075);
+        oscillator.connect(gain);
+        oscillator.start(audioContext.currentTime + index * 0.075);
+        oscillator.stop(audioContext.currentTime + 0.55 + index * 0.075);
+      });
+    } catch (error) {
+      console.warn("No se pudo reproducir el sonido de celebración", error);
+    }
+  }
+
+  function showCelebration(title, detail) {
+    playCelebrationSound();
+    showFeedback("celebration", title, detail, 2600);
+    addLog(`${title}: ${detail}`);
+  }
+
+  function ownedCountForTeam(collectionData, code) {
+    return (collectionData?.[code] || []).filter(sticker => sticker.owned).length;
+  }
+
+  function getGroupForTeam(code) {
+    return groups.find(group => group.teams.includes(code));
+  }
+
+  function collectionWithOwnedSticker(collectionData, code, number) {
+    return {
+      ...collectionData,
+      [code]: (collectionData?.[code] || []).map(sticker => (
+        sticker.number === number ? {...sticker, owned: true } : sticker
+      ))
+    };
+  }
+
+  function specialsWithOwnedSticker(specialsData, specialId) {
+    return (specialsData || []).map(item => (
+      item.id === specialId ? {...item, owned: true } : item
+    ));
+  }
+
+  function isAlbumComplete(collectionData, specialsData) {
+    const normalComplete = Object.values(collectionData || {}).flat().every(sticker => sticker.owned);
+    const specialsComplete = (specialsData || []).every(sticker => sticker.owned);
+    return normalComplete && specialsComplete;
+  }
+
+  function getNormalCompletionCelebration(code, number) {
+    const currentSticker = collection?.[code]?.find(sticker => sticker.number === number);
+    if (!currentSticker || currentSticker.owned) return null;
+
+    const nextCollection = collectionWithOwnedSticker(collection, code, number);
+
+    if (isAlbumComplete(nextCollection, specials)) {
+      return {
+        title: "ÁLBUM COMPLETO",
+        detail: `${activeProfile.name} completó 994/994 estampas`
+      };
+    }
+
+    const beforeTeamOwned = ownedCountForTeam(collection, code);
+    const afterTeamOwned = ownedCountForTeam(nextCollection, code);
+
+    if (beforeTeamOwned < 20 && afterTeamOwned === 20) {
+      const group = getGroupForTeam(code);
+      const groupCompleted = group?.teams.every(teamCode => ownedCountForTeam(nextCollection, teamCode) === 20);
+
+      if (groupCompleted) {
+        return {
+          title: `${group.name} completado`,
+          detail: `Todas las selecciones del ${group.name} están completas`
+        };
+      }
+
+      return {
+        title: "Selección completada",
+        detail: `${flags[code] || ""} ${countryNames[code] || code} 20/20 estampas`
+      };
+    }
+
+    return null;
+  }
+
+  function getSpecialCompletionCelebration(specialId) {
+    const special = specials.find(item => item.id === specialId);
+    if (!special || special.owned) return null;
+
+    const nextSpecials = specialsWithOwnedSticker(specials, specialId);
+
+    if (isAlbumComplete(collection, nextSpecials)) {
+      return {
+        title: "ÁLBUM COMPLETO",
+        detail: `${activeProfile.name} completó 994/994 estampas`
+      };
+    }
+
+    const groupItems = nextSpecials.filter(item => item.group === special.group);
+    const groupComplete = groupItems.length > 0 && groupItems.every(item => item.owned);
+
+    if (groupComplete && special.group === "Coca Cola") {
+      return {
+        title: "Colección Coca-Cola completa",
+        detail: "Las 14 especiales Coca-Cola ya están completas"
+      };
+    }
+
+    if (groupComplete && special.group === "FWC") {
+      return {
+        title: "Colección FWC completa",
+        detail: "Las 19 especiales FWC ya están completas"
+      };
+    }
+
+    return null;
   }
 
   function suggestTeamCode(inputCode) {
@@ -838,6 +988,8 @@ export default function App() {
       return;
     }
 
+    const celebration = getSpecialCompletionCelebration(specialId);
+
     saveUndoSnapshot(`${special.label}: capturar especial`);
 
     setSpecials(prev => prev.map(item => {
@@ -851,7 +1003,11 @@ export default function App() {
       showFeedback("duplicate", `${special.label} repetida`, "Se agregó a repetidas especiales");
     } else {
       addLog(`${special.label}: nueva conseguida`);
-      showFeedback("new", `${special.label} nueva`, "Se marcó como conseguida");
+      if (celebration) {
+        window.setTimeout(() => showCelebration(celebration.title, celebration.detail), 120);
+      } else {
+        showFeedback("new", `${special.label} nueva`, "Se marcó como conseguida");
+      }
     }
 
     setCaptureCount(prev => prev + 1);
@@ -923,8 +1079,13 @@ export default function App() {
       addDuplicate(code, number);
       showFeedback("duplicate", `${code}${number} repetida`, "Se agregó a repetidas");
     } else {
+      const celebration = getNormalCompletionCelebration(code, number);
       markOwned(code, number);
-      showFeedback("new", `${code}${number} nueva`, "Se marcó como conseguida");
+      if (celebration) {
+        window.setTimeout(() => showCelebration(celebration.title, celebration.detail), 120);
+      } else {
+        showFeedback("new", `${code}${number} nueva`, "Se marcó como conseguida");
+      }
     }
 
     setCaptureCount(prev => prev + 1);
@@ -1322,16 +1483,22 @@ function formatStickerList(profile) {
     duplicatesByGroup[group.name] = [];
   });
 
-  Object.entries(profile.collection || {}).forEach(([code, stickers]) => {
+  sortTeamCodes(Object.keys(profile.collection || {}), "group").forEach(code => {
+    const stickers = profile.collection?.[code] || [];
     const groupName = getTeamGroupName(code);
+    const missing = [];
+    const duplicates = [];
 
     stickers.forEach(sticker => {
       const available = (sticker.duplicates || 0) - (sticker.traded || 0);
       const label = `${code}${sticker.number}`;
 
-      if (!sticker.owned) missingByGroup[groupName].push(label);
-      if (available > 0) duplicatesByGroup[groupName].push(`${label}${available > 1 ? ` x${available}` : ""}`);
+      if (!sticker.owned) missing.push(label);
+      if (available > 0) duplicates.push(`${label}${available > 1 ? ` x${available}` : ""}`);
     });
+
+    if (missing.length) missingByGroup[groupName].push({ code, label: getCountryLabel(code), items: missing });
+    if (duplicates.length) duplicatesByGroup[groupName].push({ code, label: getCountryLabel(code), items: duplicates });
   });
 
   const missingSpecials = [];
@@ -1345,31 +1512,39 @@ function formatStickerList(profile) {
     if (available > 0) duplicateSpecials.push(`${label}${available > 1 ? ` x${available}` : ""}`);
   });
 
-  missingByGroup["Especiales"] = missingSpecials;
-  duplicatesByGroup["Especiales"] = duplicateSpecials;
+  missingByGroup["Especiales"] = missingSpecials.length ? [{ code: "ESP", label: "Especiales", items: missingSpecials }] : [];
+  duplicatesByGroup["Especiales"] = duplicateSpecials.length ? [{ code: "ESP", label: "Especiales", items: duplicateSpecials }] : [];
 
   return {missingByGroup, duplicatesByGroup };
+}
+
+function countGroupedItems(groupedItems) {
+  return Object.values(groupedItems).reduce((sum, rows) => (
+    sum + rows.reduce((rowSum, row) => rowSum + (row.items?.length || 0), 0)
+  ), 0);
 }
 
 function renderGroupedList(title, groupedItems) {
   const lines = [title];
 
-  Object.entries(groupedItems).forEach(([groupName, items]) => {
-    if (!items.length) return;
+  Object.entries(groupedItems).forEach(([groupName, rows]) => {
+    if (!rows.length) return;
     lines.push("");
     lines.push(groupName);
-    lines.push(items.join(", "));
+    rows.forEach(row => {
+      lines.push(`${row.label}: ${row.items.join(", ")}`);
+    });
   });
 
   if (lines.length === 1) lines.push("Sin registros");
 
-  return lines.join("\\n");
+  return lines.join("\n");
 }
 
 function buildShareText(profile) {
   const {missingByGroup, duplicatesByGroup } = formatStickerList(profile);
-  const missingCount = Object.values(missingByGroup).reduce((sum, items) => sum + items.length, 0);
-  const duplicateCount = Object.values(duplicatesByGroup).reduce((sum, items) => sum + items.length, 0);
+  const missingCount = countGroupedItems(missingByGroup);
+  const duplicateCount = countGroupedItems(duplicatesByGroup);
 
   return [
     `Álbum Panini 2026 · ${profile.name}`,
@@ -1377,7 +1552,41 @@ function buildShareText(profile) {
     renderGroupedList(`FALTANTES (${missingCount})`, missingByGroup),
     "",
     renderGroupedList(`REPETIDAS DISPONIBLES (${duplicateCount})`, duplicatesByGroup)
-  ].join("\\n");
+  ].join("\n");
+}
+
+function buildExcelRows(profile) {
+  const rows = [["Perfil", "Tipo", "Grupo", "País", "Código", "Estampa", "Cantidad"]];
+  const {missingByGroup, duplicatesByGroup } = formatStickerList(profile);
+
+  Object.entries(missingByGroup).forEach(([groupName, groupRows]) => {
+    groupRows.forEach(row => row.items.forEach(item => {
+      rows.push([profile.name, "Faltante", groupName, row.label, row.code, item, 1]);
+    }));
+  });
+
+  Object.entries(duplicatesByGroup).forEach(([groupName, groupRows]) => {
+    groupRows.forEach(row => row.items.forEach(item => {
+      const [sticker, qty] = item.split(" x");
+      rows.push([profile.name, "Repetida disponible", groupName, row.label, row.code, sticker, Number(qty || 1)]);
+    }));
+  });
+
+  return rows;
+}
+
+function downloadExcelCsv(profile) {
+  const rows = buildExcelRows(profile);
+  const csv = rows.map(row => row.map(value => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `panini-${slugifyProfileName(profile.name)}-listado-excel.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function ProfileListTools({profiles }) {
@@ -1441,6 +1650,7 @@ function ProfileListTools({profiles }) {
         <button onClick={copyText}><ClipboardList size={16}/> Copiar</button>
         <button onClick={openWhatsApp}><MessageCircle size={16}/> WhatsApp</button>
         <button onClick={printList}><Printer size={16}/> Imprimir</button>
+        <button onClick={() => downloadExcelCsv(selectedProfile)}><Download size={16}/> Excel</button>
       </div>
       <textarea value={text} readOnly />
     </section>
@@ -1451,7 +1661,7 @@ function TeamDetail({code, stickers, markOwned, addDuplicate, markTraded, remove
   const owned = stickers.filter(s => s.owned).length;
   return (
     <section className="card">
-      <h2>{flags[code]} {countryNames[code]} <small>{owned}/20</small></h2>
+      <h2>{flags[code]} {getCountryLabel(code)} <small>{owned}/20</small></h2>
       <div className="stickers">
         {stickers.map(s => (
           <div className={s.owned ? "sticker owned" : "sticker missing"} key={s.number}>
@@ -1572,8 +1782,53 @@ function TeamRanking({teams }) {
 }
 
 function Duplicates({collection, markTraded }) {
-  const rows = Object.entries(collection).map(([code, stickers]) => ({code, stickers: stickers.filter(s => s.duplicates > s.traded) })).filter(r => r.stickers.length);
-  return <div className="groups">{rows.map(r => <section className="card" key={r.code}><h3>{flags[r.code]} {countryNames[r.code]}</h3><div className="chips">{r.stickers.map(s => <button key={s.number} onClick={() => markTraded(r.code, s.number)}>{s.number} × {s.duplicates - s.traded}</button>)}</div></section>)}</div>
+  const [sortMode, setSortMode] = useState("group");
+  const rows = Object.entries(collection)
+    .map(([code, stickers]) => ({code, stickers: stickers.filter(s => s.duplicates > s.traded) }))
+    .filter(r => r.stickers.length);
+
+  const sortedRows = sortTeamCodes(rows.map(r => r.code), sortMode)
+    .map(code => rows.find(r => r.code === code))
+    .filter(Boolean);
+
+  const groupedRows = sortMode === "group"
+    ? groups.map(group => ({...group, rows: sortedRows.filter(row => group.teams.includes(row.code)) })).filter(group => group.rows.length)
+    : [{name: "Orden alfabético", rows: sortedRows}];
+
+  return (
+    <div className="duplicatesScreen">
+      <section className="card duplicateControls">
+        <h2><Repeat2/> Repetidas disponibles</h2>
+        <p>Ordena por grupo del Mundial o por país en orden alfabético.</p>
+        <div className="segmentedControls">
+          <button className={sortMode === "group" ? "active" : ""} onClick={() => setSortMode("group")}>Por grupo</button>
+          <button className={sortMode === "alpha" ? "active" : ""} onClick={() => setSortMode("alpha")}>Alfabético</button>
+        </div>
+      </section>
+
+      {groupedRows.length === 0 ? (
+        <section className="card"><p className="muted">No hay repetidas disponibles.</p></section>
+      ) : groupedRows.map(group => (
+        <section className="card duplicateGroup" key={group.name}>
+          <h3>{group.name}</h3>
+          <div className="duplicateTeamGrid">
+            {group.rows.map(r => (
+              <div className="duplicateTeamCard" key={r.code}>
+                <h4>{flags[r.code]} {getCountryLabel(r.code)}</h4>
+                <div className="chips">
+                  {r.stickers.map(s => (
+                    <button key={s.number} onClick={() => markTraded(r.code, s.number)}>
+                      {r.code}{s.number} × {s.duplicates - s.traded}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
 }
 
 function Specials({specials, setSpecials, removeSpecialCapture, extraStickers, addExtraSticker, removeExtraSticker }) {
