@@ -105,6 +105,8 @@ function compactLog(log, limit = 80) {
 function sanitizeSticker(sticker) {
   if (!sticker || typeof sticker !== "object") return sticker;
   return {
+    id: sticker.id ?? null,
+    label: sticker.label ?? null,
     code: sticker.code ?? null,
     number: sticker.number ?? null,
     country: sticker.country ?? null,
@@ -142,7 +144,11 @@ function sanitizeProfileForCloud(profile) {
     captureCount: Number(cleanProfile.captureCount || 0),
     achievements: cleanProfile.achievements || {},
     log: compactLog(cleanProfile.log),
-    cloudPayloadVersion: "14.2-light"
+    createdAt: cleanProfile.createdAt || cleanProfile.firstUsedAt || cleanProfile.installedAt || new Date().toISOString(),
+    firstUsedAt: cleanProfile.firstUsedAt || cleanProfile.createdAt || cleanProfile.installedAt || new Date().toISOString(),
+    installedAt: cleanProfile.installedAt || cleanProfile.createdAt || cleanProfile.firstUsedAt || new Date().toISOString(),
+    lastUsedAt: cleanProfile.lastUsedAt || new Date().toISOString(),
+    cloudPayloadVersion: "14.4-light"
   };
 }
 
@@ -157,7 +163,7 @@ export async function saveCloudFamily(data) {
 
   // El documento principal queda ligero. Nunca vuelve a guardar todos los perfiles juntos.
   batch.set(familyDocRef, {
-    schemaVersion: 14.2,
+    schemaVersion: 14.4,
     storageMode: "split-members",
     updatedFrom: cleanData.updatedFrom || "manual-button",
     clientUpdatedAt: cleanData.clientUpdatedAt || new Date().toISOString(),
@@ -183,10 +189,15 @@ export async function saveCloudFamily(data) {
     }, { merge: true });
   });
 
-  // Limpieza real de perfiles eliminados: si un perfil ya no está en la app,
-  // también se borra de Firebase para que no reaparezca en otros dispositivos.
+  // Seguridad: ya no borramos automáticamente perfiles que no estén en el dispositivo local.
+  // El borrado real queda reservado a deleteCloudMember(profileId), que se ejecuta al eliminar un perfil.
+  // Solo conservamos la limpieza del perfil fantasma histórico para que no vuelva a aparecer.
   existingMembersSnapshot.docs.forEach(memberDoc => {
-    if (!desiredMemberIds.has(memberDoc.id)) {
+    const memberId = String(memberDoc.id || "").toLowerCase();
+    const memberData = memberDoc.data() || {};
+    const memberName = String(memberData.name || "").toLowerCase();
+    const value = `${memberId} ${memberName}`;
+    if (value.includes("mich-y-omar") || value.includes("mich y omar") || (value.includes("mich") && value.includes("omar"))) {
       batch.delete(memberDoc.ref);
     }
   });
@@ -200,7 +211,7 @@ export async function deleteCloudMember(profileId) {
   await deleteDoc(memberRef);
 
   await setDoc(familyDocRef, {
-    schemaVersion: 13.13,
+    schemaVersion: 14.4,
     storageMode: "split-members",
     lastDeletedMemberId: memberId,
     clientUpdatedAt: new Date().toISOString(),

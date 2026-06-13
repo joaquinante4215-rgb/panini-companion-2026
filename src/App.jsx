@@ -130,6 +130,63 @@ function safeLoad(key, fallback) {
   }
 }
 
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function ensureProfileMeta(profile) {
+  const createdAt = profile?.createdAt || profile?.firstUsedAt || profile?.installedAt || nowIso();
+  const undoStack = Array.isArray(profile?.undoStack)
+    ? profile.undoStack.slice(0, 5).map(snapshot => ({
+        label: snapshot?.label || "Movimiento anterior",
+        collection: snapshot?.collection,
+        specials: snapshot?.specials,
+        captureCount: Number(snapshot?.captureCount || Number(snapshot?.packs || 0) * 7 || 0),
+        extraStickers: Array.isArray(snapshot?.extraStickers) ? snapshot.extraStickers : []
+      }))
+    : [];
+  return {
+    ...profile,
+    undoStack,
+    createdAt,
+    firstUsedAt: profile?.firstUsedAt || createdAt,
+    installedAt: profile?.installedAt || createdAt,
+    lastUsedAt: profile?.lastUsedAt || createdAt
+  };
+}
+
+function compactLogForBackup(log, limit = 80) {
+  if (!Array.isArray(log)) return [];
+  return log.slice(0, limit).map(item => ({
+    text: String(item?.text || item || "").slice(0, 180),
+    time: String(item?.time || "").slice(0, 60)
+  }));
+}
+
+function cleanProfileForBackup(profile) {
+  const normalized = ensureProfileMeta(normalizeProfileCharacter(profile || {}));
+  return {
+    id: normalized.id,
+    name: normalized.name,
+    emoji: normalized.emoji,
+    avatarType: normalized.avatarType || null,
+    character: normalized.character || null,
+    customCharacter: normalized.customCharacter || null,
+    color: normalized.color || "dorado",
+    pin: normalized.pin || "",
+    collection: normalized.collection || initialCollection(),
+    specials: normalized.specials || initialSpecials(),
+    extraStickers: Array.isArray(normalized.extraStickers) ? normalized.extraStickers : [],
+    captureCount: Number(normalized.captureCount || 0),
+    achievements: normalized.achievements || {},
+    log: compactLogForBackup(normalized.log),
+    createdAt: normalized.createdAt,
+    firstUsedAt: normalized.firstUsedAt,
+    installedAt: normalized.installedAt,
+    lastUsedAt: nowIso()
+  };
+}
+
 
 const founderCharacter = {
   id: "goleadora_estrella",
@@ -260,7 +317,11 @@ function createEmptyProfile(name = "Joaquín", emoji = "⚽", avatarType = "girl
         time: "Perfil"
       }
     ],
-    undoStack: []
+    undoStack: [],
+    createdAt: nowIso(),
+    firstUsedAt: nowIso(),
+    installedAt: nowIso(),
+    lastUsedAt: nowIso()
   };
 }
 
@@ -278,7 +339,11 @@ function createProfileFromLegacy(name, legacy) {
     extraStickers: legacy.extraStickers || [],
     captureCount: Number(legacy.captureCount || Number(legacy.packs || 0) * 7 || 0),
     log: legacy.log || [],
-    undoStack: legacy.undoStack || []
+    undoStack: legacy.undoStack || [],
+    createdAt: legacy.createdAt || legacy.firstUsedAt || nowIso(),
+    firstUsedAt: legacy.firstUsedAt || legacy.createdAt || nowIso(),
+    installedAt: legacy.installedAt || legacy.createdAt || nowIso(),
+    lastUsedAt: legacy.lastUsedAt || nowIso()
   };
 }
 
@@ -344,15 +409,15 @@ export default function App() {
         if (index >= 0 && shouldUpgradeValentinaProfile(savedFamily[index], legacyCollection, legacySpecials)) {
           const migrated = [...savedFamily];
           migrated[index] = {...legacyProfile, id: savedFamily[index].id, name: "Valentina" };
-          return migrated;
+          return migrated.map(profile => ensureProfileMeta(profile));
         }
       }
-      return savedFamily.map(p => p.name === "Joaquín" ? {...p, name: "Valentina", id: p.id === "joaquin" ? "valentina" : p.id } : p);
+      return savedFamily.map(p => ensureProfileMeta(p.name === "Joaquín" ? {...p, name: "Valentina", id: p.id === "joaquin" ? "valentina" : p.id } : p));
     }
 
-    if (legacyProfile) return [legacyProfile];
+    if (legacyProfile) return [ensureProfileMeta(legacyProfile)];
 
-    return [createEmptyProfile("Valentina", "⚽", "dorado")];
+    return [ensureProfileMeta(createEmptyProfile("Valentina", "⚽", "dorado"))];
   });
 
   const [activeProfileId, setActiveProfileId] = useState(() => localStorage.getItem("panini2026_activeProfileId") || "valentina");
@@ -398,7 +463,8 @@ export default function App() {
   function updateActiveProfile(updater) {
     setFamilyProfiles(prev => prev.map(profile => {
       if (profile.id !== activeProfile.id) return profile;
-      return typeof updater === "function" ? updater(profile) : {...profile, ...updater };
+      const updated = typeof updater === "function" ? updater(profile) : {...profile, ...updater };
+      return ensureProfileMeta({...updated, lastUsedAt: nowIso() });
     }));
   }
 
@@ -484,7 +550,11 @@ export default function App() {
         captureCount: 0,
         extraStickers: [],
         log: [{ text: `Perfil creado: ${cleanName}`, time: "Perfil" }],
-        undoStack: []
+        undoStack: [],
+        createdAt: nowIso(),
+        firstUsedAt: nowIso(),
+        installedAt: nowIso(),
+        lastUsedAt: nowIso()
       };
 
       setActiveProfileId(finalProfile.id);
@@ -538,7 +608,7 @@ export default function App() {
         if (cancelled) return;
 
         if (cloudData?.familyProfiles?.length) {
-          const rawProfiles = cloudData.familyProfiles.map(normalizeProfileCharacter);
+          const rawProfiles = cloudData.familyProfiles.map(profile => ensureProfileMeta(normalizeProfileCharacter(profile)));
           const ghostProfiles = rawProfiles.filter(isGhostProfile);
           const normalizedProfiles = removeGhostProfiles(rawProfiles);
 
@@ -607,7 +677,8 @@ export default function App() {
       duplicates: stickers.reduce((sum, s) => sum + s.duplicates, 0)
     })).sort((a, b) => b.owned - a.owned);
 
-    const completedTeams = completionByTeam.filter(t => t.owned === 20).length;
+    const completedTeamsList = completionByTeam.filter(t => t.owned === 20);
+    const completedTeams = completedTeamsList.length;
     const almostTeams = completionByTeam.filter(t => t.owned >= 17 && t.owned < 20).length;
     const weakestTeams = [...completionByTeam].sort((a, b) => a.owned - b.owned).slice(0, 5);
     const strongestTeams = completionByTeam.slice(0, 5);
@@ -615,10 +686,10 @@ export default function App() {
     const duplicateRate = Math.round((dupes / Math.max(1, owned + dupes)) * 1000) / 10;
     const expectedUsefulPerPack = Math.round((nextNewProbability / 100) * 7 * 10) / 10;
     const recommendedMode = nextNewProbability > 35 ? "Comprar sobres" : nextNewProbability > 18 ? "Comprar + intercambiar" : "Priorizar intercambio";
-    const estimatedCostRemaining = estimatedPacks * 21;
+    const estimatedCostRemaining = estimatedPacks * 25;
     const albumIntensity = progress >= 90 ? "Recta final" : progress >= 70 ? "Etapa difícil" : progress >= 40 ? "Buen ritmo" : "Arranque";
 
-    return {total, owned, missing, dupes, traded, availableDupes, normalOwned, specialOwned, progress, nextNewProbability, estimatedPacks, completionByTeam, completedTeams, almostTeams, weakestTeams, strongestTeams, usefulRate, duplicateRate, expectedUsefulPerPack, recommendedMode, estimatedCostRemaining, albumIntensity };
+    return {total, owned, missing, dupes, traded, availableDupes, normalOwned, specialOwned, progress, nextNewProbability, estimatedPacks, completionByTeam, completedTeams, completedTeamsList, almostTeams, weakestTeams, strongestTeams, usefulRate, duplicateRate, expectedUsefulPerPack, recommendedMode, estimatedCostRemaining, albumIntensity };
   }, [collection, specials]);
 
   const activeAchievements = useMemo(() => calculateAchievements(activeProfile, familyProfiles), [activeProfile, familyProfiles]);
@@ -845,10 +916,8 @@ export default function App() {
       collection,
       specials,
       captureCount,
-      packs,
-      log,
       extraStickers
-    }, ...prev].slice(0, 10));
+    }, ...prev].slice(0, 5));
   }
 
   function undoLastAction() {
@@ -861,21 +930,24 @@ export default function App() {
     setSpecials(last.specials);
     setCaptureCount(Number(last.captureCount || Number(last.packs || 0) * 7 || 0));
     setExtraStickers(Array.isArray(last.extraStickers) ? last.extraStickers : extraStickers);
-    setLog([{text: `Deshacer: ${last.label}`, time: new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }) }, ...last.log].slice(0, 30));
+    setLog([{text: `Deshacer: ${last.label}`, time: new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }) }, ...log].slice(0, 30));
     setUndoStack(prev => prev.slice(1));
   }
 
   function exportBackup() {
+    const cleanedProfiles = familyProfiles.map(cleanProfileForBackup);
+    const cleanedActiveProfile = cleanedProfiles.find(profile => profile.id === activeProfile.id) || cleanedProfiles[0];
     const backup = {
-      version: 4,
+      version: "14.4-family",
       createdAt: new Date().toISOString(),
-      collection,
-      specials,
-      captureCount,
-      packs,
-      log,
-      extraStickers,
-      undoStack
+      activeProfileId: cleanedActiveProfile?.id || activeProfile.id,
+      familyProfiles: cleanedProfiles,
+      // Compatibilidad con respaldos anteriores de perfil único
+      collection: cleanedActiveProfile?.collection || collection,
+      specials: cleanedActiveProfile?.specials || specials,
+      captureCount: Number(cleanedActiveProfile?.captureCount || captureCount || 0),
+      log: cleanedActiveProfile?.log || compactLogForBackup(log),
+      extraStickers: cleanedActiveProfile?.extraStickers || extraStickers
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], {
@@ -908,22 +980,37 @@ export default function App() {
       try {
         const data = JSON.parse(e.target.result);
 
-        if (!data.collection || typeof data.collection !== "object") {
+        const hasFamilyBackup = Array.isArray(data.familyProfiles) && data.familyProfiles.length;
+        const hasSingleProfileBackup = data.collection && typeof data.collection === "object";
+
+        if (!hasFamilyBackup && !hasSingleProfileBackup) {
           throw new Error("Archivo inválido");
         }
 
         saveUndoSnapshot("importar respaldo");
 
-        if (Array.isArray(data.familyProfiles) && data.familyProfiles.length) {
-          setFamilyProfiles(data.familyProfiles.map(normalizeProfileCharacter));
-          setActiveProfileId(data.activeProfileId || data.familyProfiles[0].id);
+        if (hasFamilyBackup) {
+          const importedProfiles = data.familyProfiles.map(profile => ensureProfileMeta(normalizeProfileCharacter({
+            ...createEmptyProfile(profile.name || "Coleccionista", profile.emoji || "⭐", profile.color || "dorado"),
+            ...profile,
+            collection: profile.collection || initialCollection(),
+            specials: profile.specials || initialSpecials(),
+            extraStickers: Array.isArray(profile.extraStickers) ? profile.extraStickers : [],
+            log: Array.isArray(profile.log) ? profile.log : [],
+            undoStack: []
+          })));
+          const nextActiveId = importedProfiles.some(profile => profile.id === data.activeProfileId)
+            ? data.activeProfileId
+            : importedProfiles[0].id;
+          setFamilyProfiles(importedProfiles);
+          setActiveProfileId(nextActiveId);
         } else {
           setCollection(data.collection || initialCollection());
           setSpecials(data.specials || initialSpecials());
           setCaptureCount(Number(data.captureCount || Number(data.packs || 0) * 7 || 0));
           setExtraStickers(Array.isArray(data.extraStickers) ? data.extraStickers : []);
           setLog(Array.isArray(data.log) ? data.log : []);
-          setUndoStack(Array.isArray(data.undoStack) ? data.undoStack : []);
+          setUndoStack([]);
         }
 
         showFeedback("new", "Respaldo importado", "El álbum fue restaurado correctamente");
@@ -1029,6 +1116,25 @@ export default function App() {
     setCaptureCount(prev => Math.max(0, prev - 1));
     addLog(`${special.label}: captura retirada`);
     showFeedback("error", `${special.label} retirada`, "Se corrigió la captura especial");
+  }
+
+  function updateSpecialManual(id, action) {
+    const special = specials.find(item => item.id === id);
+    if (!special) return;
+
+    saveUndoSnapshot(`${special.label}: actualizar especial`);
+
+    setSpecials(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      if (action === "owned") return {...item, owned: true };
+      if (action === "dupe") return {...item, owned: true, duplicates: Number(item.duplicates || 0) + 1 };
+      if (action === "trade" && Number(item.traded || 0) < Number(item.duplicates || 0)) return {...item, traded: Number(item.traded || 0) + 1 };
+      return item;
+    }));
+
+    const actionText = action === "owned" ? "marcada como conseguida" : action === "dupe" ? "repetida agregada" : "marcada como cambiada";
+    addLog(`${special.label}: ${actionText}`);
+    showFeedback(action === "dupe" ? "duplicate" : "new", special.label, actionText);
   }
 
   function processQuickCode() {
@@ -1166,8 +1272,8 @@ export default function App() {
           try {
             setCloudStatus("guardando nube");
             await saveCloudFamily({
-              familyProfiles: familyProfiles.map(normalizeProfileCharacter),
-              schemaVersion: 14.2,
+              familyProfiles: familyProfiles.map(profile => ensureProfileMeta(normalizeProfileCharacter(profile))),
+              schemaVersion: 14.4,
               updatedFrom: "manual-button",
               clientUpdatedAt: new Date().toISOString()
             });
@@ -1265,7 +1371,7 @@ export default function App() {
 
       {tab === "stats" && <Stats totals={totals} packs={packs}/>}
       {tab === "duplicates" && <Duplicates collection={collection} markTraded={markTraded}/>}
-      {tab === "specials" && <Specials specials={specials} setSpecials={setSpecials} removeSpecialCapture={removeSpecialCapture} extraStickers={extraStickers} addExtraSticker={addExtraSticker} removeExtraSticker={removeExtraSticker}/>}
+      {tab === "specials" && <Specials specials={specials} updateSpecialManual={updateSpecialManual} removeSpecialCapture={removeSpecialCapture} extraStickers={extraStickers} addExtraSticker={addExtraSticker} removeExtraSticker={removeExtraSticker}/>}
       {tab === "achievements" && <Achievements profile={activeProfile} familyProfiles={familyProfiles} />}
 
       {tab === "family" && (
@@ -1306,15 +1412,6 @@ function getProfileStickerCount(profile) {
 }
 
 
-const avatarImageMap = {
-  goleadora_estrella: avatarGoleadora,
-  portero_imbatible: avatarPortero,
-  la_capitana: avatarCapitana,
-  fichaje_mas_caro: avatarFichaje,
-  los_galacticos: avatarGalacticos,
-  dupla_del_gol: avatarDupla,
-  duenas_de_la_cancha: avatarDuenas
-};
 
 function getAvatarImage(profile) {
   const character = getProfileCharacter(profile);
@@ -1754,9 +1851,29 @@ function Stats({totals, packs }) {
         </div>
       </section>
 
+      <section className="card completedTeamsCard">
+        <h2><CheckCircle2/> Selecciones completas</h2>
+        {totals.completedTeamsList.length ? (
+          <div className="completedTeamsGrid">
+            {totals.completedTeamsList
+              .slice()
+              .sort((a, b) => (teamOrderIndex[a.code] ?? 9999) - (teamOrderIndex[b.code] ?? 9999))
+              .map(team => (
+                <div className="completedTeamChip" key={team.code}>
+                  <span>{flags[team.code] || "🏳️"}</span>
+                  <strong>{team.name}</strong>
+                  <small>{team.code} · 20/20</small>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <p className="muted">Todavía no hay selecciones completas. Cuando una llegue a 20/20 aparecerá aquí.</p>
+        )}
+      </section>
+
       <section className="card">
         <h2><Wallet/> Nota de costos</h2>
-        <p>El costo estimado usa un supuesto editable de <b>$21 MXN por sobre</b>. Más adelante podemos agregar configuración para cambiar precio por sobre y estampas por sobre.</p>
+        <p>El costo estimado usa <b>$25 MXN por sobre</b> de 7 estampas.</p>
       </section>
     </div>
   );
@@ -1831,18 +1948,7 @@ function Duplicates({collection, markTraded }) {
   );
 }
 
-function Specials({specials, setSpecials, removeSpecialCapture, extraStickers, addExtraSticker, removeExtraSticker }) {
-  function update(id, action) {
-    setUndoStack(prev => [{label: `${id}: actualizar especial`, collection, specials, packs, log }, ...prev].slice(0, 10));
-    setSpecials(prev => prev.map(s => {
-      if (s.id !== id) return s;
-      if (action === "owned") return {...s, owned: true };
-      if (action === "dupe") return {...s, owned: true, duplicates: s.duplicates + 1 };
-      if (action === "trade" && s.traded < s.duplicates) return {...s, traded: s.traded + 1 };
-      return s;
-    }));
-  }
-
+function Specials({specials, updateSpecialManual, removeSpecialCapture, extraStickers, addExtraSticker, removeExtraSticker }) {
   const specialGroups = [
     {name: "Panini", items: specials.filter(s => s.group === "Panini") },
     {name: "FWC · FIFA World Cup", items: specials.filter(s => s.group === "FWC") },
@@ -1873,9 +1979,9 @@ function Specials({specials, setSpecials, removeSpecialCapture, extraStickers, a
                 <span>{s.owned ? "Tengo" : "Falta"}</span>
                 <small>R:{s.duplicates} C:{s.traded}</small>
                 <div>
-                  <button onClick={() => update(s.id, "owned")}>Tengo</button>
-                  <button onClick={() => update(s.id, "dupe")}>Repetida</button>
-                  <button onClick={() => update(s.id, "trade")}>Cambiada</button>
+                  <button onClick={() => updateSpecialManual(s.id, "owned")}>Tengo</button>
+                  <button onClick={() => updateSpecialManual(s.id, "dupe")}>Repetida</button>
+                  <button onClick={() => updateSpecialManual(s.id, "trade")}>Cambiada</button>
                   <button onClick={() => removeSpecialCapture(s.id)}>Quitar</button>
                 </div>
               </div>
