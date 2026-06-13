@@ -1167,13 +1167,13 @@ export default function App() {
             setCloudStatus("guardando nube");
             await saveCloudFamily({
               familyProfiles: familyProfiles.map(normalizeProfileCharacter),
-              schemaVersion: 13.13,
+              schemaVersion: 14.2,
               updatedFrom: "manual-button",
               clientUpdatedAt: new Date().toISOString()
             });
             setCloudStatus("sincronizado");
             setLastCloudUpdate(new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }));
-            showFeedback("new", "Nube actualizada", "Avance guardado en estructura segura por perfil");
+            showFeedback("new", "Nube actualizada", "Avance guardado en nube ligera y segura");
           } catch (error) {
             console.error(error);
             setCloudStatus("error nube");

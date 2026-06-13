@@ -91,9 +91,64 @@ export async function loadCloudFamily() {
   return familySnapshot.exists() ? familyData : null;
 }
 
+function compactLog(log, limit = 80) {
+  if (!Array.isArray(log)) return [];
+  return log.slice(-limit).map(item => {
+    if (!item || typeof item !== "object") return { text: String(item || ""), time: "" };
+    return {
+      text: String(item.text || "").slice(0, 180),
+      time: String(item.time || "").slice(0, 60)
+    };
+  });
+}
+
+function sanitizeSticker(sticker) {
+  if (!sticker || typeof sticker !== "object") return sticker;
+  return {
+    code: sticker.code ?? null,
+    number: sticker.number ?? null,
+    country: sticker.country ?? null,
+    group: sticker.group ?? null,
+    name: sticker.name ?? null,
+    owned: Boolean(sticker.owned),
+    duplicates: Number(sticker.duplicates || 0),
+    traded: Number(sticker.traded || 0)
+  };
+}
+
+function sanitizeCollection(collectionData) {
+  if (!collectionData || typeof collectionData !== "object") return {};
+  const clean = {};
+  Object.entries(collectionData).forEach(([key, stickers]) => {
+    clean[key] = Array.isArray(stickers) ? stickers.map(sanitizeSticker) : stickers;
+  });
+  return clean;
+}
+
+function sanitizeProfileForCloud(profile) {
+  const cleanProfile = cleanForFirestore(profile || {});
+
+  return {
+    id: cleanProfile.id || null,
+    name: cleanProfile.name || "Coleccionista",
+    emoji: cleanProfile.emoji || "⭐",
+    character: cleanProfile.character || null,
+    customCharacter: cleanProfile.customCharacter || null,
+    color: cleanProfile.color || "dorado",
+    pin: cleanProfile.pin || "",
+    collection: sanitizeCollection(cleanProfile.collection),
+    specials: Array.isArray(cleanProfile.specials) ? cleanProfile.specials.map(sanitizeSticker) : [],
+    extraStickers: Array.isArray(cleanProfile.extraStickers) ? cleanProfile.extraStickers : [],
+    captureCount: Number(cleanProfile.captureCount || 0),
+    achievements: cleanProfile.achievements || {},
+    log: compactLog(cleanProfile.log),
+    cloudPayloadVersion: "14.2-light"
+  };
+}
+
 export async function saveCloudFamily(data) {
   const cleanData = cleanForFirestore(data || {});
-  const familyProfiles = Array.isArray(cleanData.familyProfiles) ? cleanData.familyProfiles : [];
+  const familyProfiles = Array.isArray(cleanData.familyProfiles) ? cleanData.familyProfiles.map(sanitizeProfileForCloud) : [];
   const desiredMemberIds = new Set(
     familyProfiles.map((profile, index) => safeDocId(profile.id, `member-${index + 1}`))
   );
@@ -102,7 +157,7 @@ export async function saveCloudFamily(data) {
 
   // El documento principal queda ligero. Nunca vuelve a guardar todos los perfiles juntos.
   batch.set(familyDocRef, {
-    schemaVersion: 13.13,
+    schemaVersion: 14.2,
     storageMode: "split-members",
     updatedFrom: cleanData.updatedFrom || "manual-button",
     clientUpdatedAt: cleanData.clientUpdatedAt || new Date().toISOString(),
@@ -120,7 +175,11 @@ export async function saveCloudFamily(data) {
       ...profile,
       id: memberId,
       order: index,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      // Campos solo locales o pesados: si ya existían en Firebase se eliminan.
+      undoStack: deleteField(),
+      uiState: deleteField(),
+      captureFeedback: deleteField()
     }, { merge: true });
   });
 
