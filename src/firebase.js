@@ -148,7 +148,7 @@ function sanitizeProfileForCloud(profile) {
     firstUsedAt: cleanProfile.firstUsedAt || cleanProfile.createdAt || cleanProfile.installedAt || new Date().toISOString(),
     installedAt: cleanProfile.installedAt || cleanProfile.createdAt || cleanProfile.firstUsedAt || new Date().toISOString(),
     lastUsedAt: cleanProfile.lastUsedAt || new Date().toISOString(),
-    cloudPayloadVersion: "14.4-light"
+    cloudPayloadVersion: "14.5-light"
   };
 }
 
@@ -163,7 +163,7 @@ export async function saveCloudFamily(data) {
 
   // El documento principal queda ligero. Nunca vuelve a guardar todos los perfiles juntos.
   batch.set(familyDocRef, {
-    schemaVersion: 14.4,
+    schemaVersion: 14.5,
     storageMode: "split-members",
     updatedFrom: cleanData.updatedFrom || "manual-button",
     clientUpdatedAt: cleanData.clientUpdatedAt || new Date().toISOString(),
@@ -211,7 +211,7 @@ export async function deleteCloudMember(profileId) {
   await deleteDoc(memberRef);
 
   await setDoc(familyDocRef, {
-    schemaVersion: 14.4,
+    schemaVersion: 14.5,
     storageMode: "split-members",
     lastDeletedMemberId: memberId,
     clientUpdatedAt: new Date().toISOString(),

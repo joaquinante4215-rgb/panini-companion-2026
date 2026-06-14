@@ -458,11 +458,29 @@ export default function App() {
   const [cloudStatus, setCloudStatus] = useState("local");
   const [cloudReady, setCloudReady] = useState(false);
   const [lastCloudUpdate, setLastCloudUpdate] = useState(null);
+  const latestFamilyProfilesRef = useRef(familyProfiles);
+  const hasUnsavedLocalChangesRef = useRef(false);
 
+  useEffect(() => {
+    latestFamilyProfilesRef.current = familyProfiles;
+  }, [familyProfiles]);
+
+  function commitFamilyProfiles(updater, options = {}) {
+    const { markDirty = true } = options;
+    const base = Array.isArray(latestFamilyProfilesRef.current) ? latestFamilyProfilesRef.current : [];
+    const next = typeof updater === "function" ? updater(base) : updater;
+    const normalizedNext = Array.isArray(next) ? next.map(profile => ensureProfileMeta(profile)) : [];
+
+    latestFamilyProfilesRef.current = normalizedNext;
+    if (markDirty) hasUnsavedLocalChangesRef.current = true;
+    setFamilyProfiles(normalizedNext);
+    return normalizedNext;
+  }
 
   function updateActiveProfile(updater) {
-    setFamilyProfiles(prev => prev.map(profile => {
-      if (profile.id !== activeProfile.id) return profile;
+    const currentActiveId = activeProfile?.id || activeProfileId;
+    commitFamilyProfiles(prev => prev.map(profile => {
+      if (profile.id !== currentActiveId) return profile;
       const updated = typeof updater === "function" ? updater(profile) : {...profile, ...updater };
       return ensureProfileMeta({...updated, lastUsedAt: nowIso() });
     }));
@@ -521,7 +539,7 @@ export default function App() {
       defaultColor: "dorado"
     };
 
-    setFamilyProfiles(prev => {
+    commitFamilyProfiles(prev => {
       const baseId = slugifyProfileName(cleanName);
       const existingIds = new Set(prev.map(p => p.id));
       let id = baseId;
@@ -578,7 +596,7 @@ export default function App() {
 
     const next = familyProfiles.filter(p => p.id !== profileId);
 
-    setFamilyProfiles(next);
+    commitFamilyProfiles(next);
 
     if (activeProfile.id === profileId) {
       setActiveProfileId(next[0].id);
@@ -629,7 +647,14 @@ export default function App() {
             return;
           }
 
-          setFamilyProfiles(normalizedProfiles);
+          if (hasUnsavedLocalChangesRef.current) {
+            // Si Valentina ya empezó a capturar mientras cargaba Firebase, nunca pisamos el avance local.
+            setCloudReady(true);
+            setCloudStatus("local con cambios");
+            return;
+          }
+
+          commitFamilyProfiles(normalizedProfiles, { markDirty: false });
           setActiveProfileId(safeActiveId);
           localStorage.setItem("panini2026_familyProfiles", JSON.stringify(normalizedProfiles));
           localStorage.setItem("panini2026_activeProfileId", safeActiveId);
@@ -700,7 +725,7 @@ export default function App() {
     const next = JSON.stringify(activeAchievements);
     if (current === next) return;
 
-    setFamilyProfiles(prev => prev.map(profile => (
+    commitFamilyProfiles(prev => prev.map(profile => (
       profile.id === activeProfile.id
         ? {...profile, achievements: activeAchievements }
         : profile
@@ -938,7 +963,7 @@ export default function App() {
     const cleanedProfiles = familyProfiles.map(cleanProfileForBackup);
     const cleanedActiveProfile = cleanedProfiles.find(profile => profile.id === activeProfile.id) || cleanedProfiles[0];
     const backup = {
-      version: "14.4-family",
+      version: "14.5-family",
       createdAt: new Date().toISOString(),
       activeProfileId: cleanedActiveProfile?.id || activeProfile.id,
       familyProfiles: cleanedProfiles,
@@ -1002,7 +1027,7 @@ export default function App() {
           const nextActiveId = importedProfiles.some(profile => profile.id === data.activeProfileId)
             ? data.activeProfileId
             : importedProfiles[0].id;
-          setFamilyProfiles(importedProfiles);
+          commitFamilyProfiles(importedProfiles);
           setActiveProfileId(nextActiveId);
         } else {
           setCollection(data.collection || initialCollection());
@@ -1271,12 +1296,17 @@ export default function App() {
         <button onClick={async () => {
           try {
             setCloudStatus("guardando nube");
+            const profilesToSave = (latestFamilyProfilesRef.current || familyProfiles)
+              .map(profile => ensureProfileMeta(normalizeProfileCharacter(profile)));
+
             await saveCloudFamily({
-              familyProfiles: familyProfiles.map(profile => ensureProfileMeta(normalizeProfileCharacter(profile))),
-              schemaVersion: 14.4,
+              familyProfiles: profilesToSave,
+              schemaVersion: 14.5,
               updatedFrom: "manual-button",
               clientUpdatedAt: new Date().toISOString()
             });
+            hasUnsavedLocalChangesRef.current = false;
+            commitFamilyProfiles(profilesToSave, { markDirty: false });
             setCloudStatus("sincronizado");
             setLastCloudUpdate(new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit" }));
             showFeedback("new", "Nube actualizada", "Avance guardado en nube ligera y segura");
