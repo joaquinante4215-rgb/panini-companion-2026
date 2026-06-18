@@ -134,6 +134,21 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function repairSpecialsMetadata(specials) {
+  const catalog = initialSpecials();
+
+  return catalog.map((original, index) => {
+    const item = specials?.[index] || {};
+
+    return {
+      ...original,
+      owned: !!item.owned,
+      duplicates: Number(item.duplicates || 0),
+      traded: Number(item.traded || 0)
+    };
+  });
+}
+
 function ensureProfileMeta(profile) {
   const createdAt = profile?.createdAt || profile?.firstUsedAt || profile?.installedAt || nowIso();
   const undoStack = Array.isArray(profile?.undoStack)
@@ -147,6 +162,7 @@ function ensureProfileMeta(profile) {
     : [];
   return {
     ...profile,
+    specials: repairSpecialsMetadata(profile?.specials || []),
     undoStack,
     createdAt,
     firstUsedAt: profile?.firstUsedAt || createdAt,
